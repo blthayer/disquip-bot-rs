@@ -11,6 +11,20 @@ async fn hello(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+/// Show help menu
+#[poise::command(prefix_command)]
+pub async fn help(
+    ctx: Context<'_>,
+    #[description = "Specific command to show help about"] command: Option<String>,
+) -> Result<(), Error> {
+    let config = poise::builtins::HelpConfiguration {
+        extra_text_at_bottom: "Type `!help command` for more info on a command.",
+        ..Default::default()
+    };
+    poise::builtins::help(ctx, command.as_deref(), config).await?;
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
@@ -19,7 +33,6 @@ async fn main() {
         | serenity::GatewayIntents::GUILD_MESSAGES
         | serenity::GatewayIntents::MESSAGE_CONTENT;
 
-    // let intents = serenity::GatewayIntents::non_privileged();
     let prefix_framework_options = poise::PrefixFrameworkOptions {
         prefix: Some("!".to_string()),
         ..Default::default()
@@ -28,7 +41,7 @@ async fn main() {
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             prefix_options: prefix_framework_options,
-            commands: vec![hello()],
+            commands: vec![hello(), help()],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
