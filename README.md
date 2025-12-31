@@ -13,7 +13,15 @@ app/bot is outside the scope of this document.
    Intents" sections toggle "Message Content Intent" on.
 5. Save changes.
 
-## Usage
+Ensure the bot is added/authenticated with the Discord server you intend to use (
+directions outside the scope of this document).
+
+## Run
 
 1. Build: `cargo build --release`
 2. Run: `DISCORD_TOKEN="$(<token)" ./target/release/disquip-bot-rs`
+
+## Interact
+
+In a text channel, type "!hello" and send the message. The bot will respond with
+"world."
