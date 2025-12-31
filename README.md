@@ -18,8 +18,10 @@ directions outside the scope of this document).
 
 ## Run
 
+First follow directions in the `Setup` section.
+
 1. Build: `cargo build --release`
-2. Run: `DISCORD_TOKEN="$(<token)" ./target/release/disquip-bot-rs`
+2. Run: `./run.sh`
 
 ## Interact
 
