@@ -1,0 +1,9 @@
+[package]
+name = "disquip-bot-rs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serenity = {version = "0.12" }
+poise = { version = "0.6" }
+tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread"] }
