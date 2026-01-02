@@ -1,5 +1,4 @@
 use poise::serenity_prelude as serenity;
-
 struct Data {} // User data, which is stored and accessible in all command invocations
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
@@ -7,7 +6,34 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 /// Responds "world" to "hello"
 #[poise::command(prefix_command)]
 async fn hello(ctx: Context<'_>) -> Result<(), Error> {
-    ctx.say("world").await?;
+    ctx.reply("world").await?;
+    Ok(())
+}
+
+/// Joins the user's voice channel and plays the AOE 1 "yes" taunt.
+#[poise::command(prefix_command, guild_only = true)]
+async fn yes(ctx: Context<'_>) -> Result<(), Error> {
+    // Get user's voice channel.
+    let guild = ctx.guild().unwrap().to_owned();
+    let user_id = ctx.author().id;
+    let voice_states = guild.voice_states.get(&user_id);
+    match voice_states {
+        Some(voice_states) => {
+            ctx.reply(format!(
+                "User's voice channel id is {:?}",
+                voice_states.channel_id
+            ))
+            .await?;
+        }
+        None => {
+            ctx.reply("You must be in a voice channel!".to_string())
+                .await?;
+        }
+    }
+
+    // Load up the file!
+    // let file = songbird::input::File::new("yes.mp3");
+    // ctx.say("world").await?;
     Ok(())
 }
 
@@ -31,7 +57,8 @@ async fn main() {
 
     let intents = serenity::GatewayIntents::non_privileged()
         | serenity::GatewayIntents::GUILD_MESSAGES
-        | serenity::GatewayIntents::MESSAGE_CONTENT;
+        | serenity::GatewayIntents::MESSAGE_CONTENT
+        | serenity::GatewayIntents::GUILD_VOICE_STATES;
 
     let prefix_framework_options = poise::PrefixFrameworkOptions {
         prefix: Some("!".to_string()),
@@ -41,7 +68,7 @@ async fn main() {
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             prefix_options: prefix_framework_options,
-            commands: vec![hello(), help()],
+            commands: vec![hello(), help(), yes()],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
