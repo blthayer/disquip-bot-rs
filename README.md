@@ -16,6 +16,11 @@ app/bot is outside the scope of this document.
 Ensure the bot is added/authenticated with the Discord server you intend to use (
 directions outside the scope of this document).
 
+## Development/Build dependencies
+
+- `cmake`: Simply `sudo apt update; sudo apt install cmake` (older version
+   seems to be okay)
+
 ## Run
 
 First follow directions in the `Setup` section.
