@@ -120,6 +120,11 @@ fn get_file_map(top_dir: String) -> FileMap {
             }
         }
     }
+
+    // Sort.
+    for val in map.values_mut() {
+        val.sort_by_key(|a| a.path());
+    }
     map
 }
 
