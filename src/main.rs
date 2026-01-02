@@ -1,19 +1,30 @@
+use std::{
+    collections::HashMap,
+    fs::{DirEntry, read_dir},
+};
+
 use poise::serenity_prelude as serenity;
 use songbird::SerenityInit;
-struct Data {} // User data, which is stored and accessible in all command invocations
+type FileMap = HashMap<String, Vec<DirEntry>>;
+struct Data {
+    pub file_map: FileMap,
+}
 type Error = Box<dyn std::error::Error + Send + Sync>;
-type Context<'a> = poise::Context<'a, Data, Error>;
+type Context<'a> = poise::PrefixContext<'a, Data, Error>;
+type GenericContext<'a> = poise::Context<'a, Data, Error>;
 
-/// Responds "world" to "hello"
 #[poise::command(prefix_command)]
 async fn hello(ctx: Context<'_>) -> Result<(), Error> {
     ctx.reply("world").await?;
     Ok(())
 }
 
-/// Joins the user's voice channel and plays the AOE 1 "yes" taunt.
+/// Play a quip!
 #[poise::command(prefix_command, guild_only = true)]
-async fn yes(ctx: Context<'_>) -> Result<(), Error> {
+async fn join_and_play(
+    ctx: Context<'_>,
+    #[description = "Quip number"] num: usize,
+) -> Result<(), Error> {
     // Get user's voice channel.
     let guild = ctx.guild().unwrap().to_owned();
     let user_id = ctx.author().id;
@@ -31,6 +42,30 @@ async fn yes(ctx: Context<'_>) -> Result<(), Error> {
         return Ok(());
     };
 
+    let command = ctx.invoked_command_name();
+    let file_vec = ctx.data().file_map.get(ctx.invoked_command_name());
+    let chosen_file: &DirEntry;
+    match file_vec {
+        Some(file_vec) => {
+            let attempt_chosen_file = file_vec.get(num - 1);
+            match attempt_chosen_file {
+                Some(_chosen_file) => chosen_file = _chosen_file,
+                None => {
+                    ctx.reply(format!("The given integer \"{:?}\" is invalid. Valid integers for the \"{:?}\" command range from 1 to {:?}", num, command, file_vec.len()))
+                    .await?;
+                    return Ok(());
+                }
+            }
+        }
+        None => {
+            ctx.reply(format!(
+                "The given command \"{:?}\" is not valid, see \"!help\"",
+                command
+            ))
+            .await?;
+            return Ok(());
+        }
+    }
     let manager = songbird::get(ctx.serenity_context())
         .await
         .expect("Songbird Voice client placed in at initialisation.")
@@ -42,7 +77,7 @@ async fn yes(ctx: Context<'_>) -> Result<(), Error> {
     if let Ok(handler_lock) = manager.join(guild.id, songbird_id).await {
         let mut handler = handler_lock.lock().await;
 
-        let file = songbird::input::File::new("yes.mp3");
+        let file = songbird::input::File::new(chosen_file.path());
         handler.play_only_input(file.into());
     }
 
@@ -52,7 +87,7 @@ async fn yes(ctx: Context<'_>) -> Result<(), Error> {
 /// Show help menu
 #[poise::command(prefix_command)]
 pub async fn help(
-    ctx: Context<'_>,
+    ctx: GenericContext<'_>,
     #[description = "Specific command to show help about"] command: Option<String>,
 ) -> Result<(), Error> {
     let config = poise::builtins::HelpConfiguration {
@@ -63,8 +98,35 @@ pub async fn help(
     Ok(())
 }
 
+fn get_file_map(top_dir: String) -> FileMap {
+    let mut map: HashMap<String, Vec<DirEntry>> = HashMap::new();
+
+    let result = read_dir(top_dir).unwrap();
+    for r in result {
+        let u = r.unwrap();
+        if u.file_type().unwrap().is_dir() {
+            let files = read_dir(u.path()).unwrap();
+            for f in files {
+                let _f = f.unwrap();
+                let key = u.file_name().into_string().unwrap();
+                match map.entry(key) {
+                    std::collections::hash_map::Entry::Occupied(mut oe) => {
+                        oe.get_mut().push(_f);
+                    }
+                    std::collections::hash_map::Entry::Vacant(ve) => {
+                        ve.insert(vec![_f]);
+                    }
+                }
+            }
+        }
+    }
+    map
+}
+
 #[tokio::main]
 async fn main() {
+    let file_map = get_file_map("audio".to_string());
+
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
 
     let intents = serenity::GatewayIntents::non_privileged()
@@ -77,16 +139,19 @@ async fn main() {
         ..Default::default()
     };
 
+    let mut command = join_and_play();
+    command.aliases = file_map.keys().cloned().collect();
+
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             prefix_options: prefix_framework_options,
-            commands: vec![hello(), help(), yes()],
+            commands: vec![hello(), help(), command],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data {})
+                Ok(Data { file_map })
             })
         })
         .build();
