@@ -37,11 +37,15 @@ async fn yes(ctx: Context<'_>) -> Result<(), Error> {
         .clone();
 
     let songbird_id = songbird::id::ChannelId::from(channel_id);
-    manager.join(guild.id, songbird_id).await?;
+    // It seems to be fine if there are multiple join calls, probably no need
+    // to add our own conditional here.
+    if let Ok(handler_lock) = manager.join(guild.id, songbird_id).await {
+        let mut handler = handler_lock.lock().await;
 
-    // Load up the file!
-    // let file = songbird::input::File::new("yes.mp3");
-    // ctx.say("world").await?;
+        let file = songbird::input::File::new("yes.mp3");
+        handler.play_only_input(file.into());
+    }
+
     Ok(())
 }
 
