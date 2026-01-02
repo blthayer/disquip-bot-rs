@@ -1,4 +1,5 @@
 use poise::serenity_prelude as serenity;
+use songbird::SerenityInit;
 struct Data {} // User data, which is stored and accessible in all command invocations
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
@@ -17,19 +18,26 @@ async fn yes(ctx: Context<'_>) -> Result<(), Error> {
     let guild = ctx.guild().unwrap().to_owned();
     let user_id = ctx.author().id;
     let voice_states = guild.voice_states.get(&user_id);
-    match voice_states {
-        Some(voice_states) => {
-            ctx.reply(format!(
-                "User's voice channel id is {:?}",
-                voice_states.channel_id
-            ))
+
+    let Some(voice_states) = voice_states else {
+        ctx.reply("You must be in a voice channel!".to_string())
             .await?;
-        }
-        None => {
-            ctx.reply("You must be in a voice channel!".to_string())
-                .await?;
-        }
-    }
+        return Ok(());
+    };
+
+    let Some(channel_id) = voice_states.channel_id else {
+        ctx.reply("Somehow there's no channel_id, which does not make sense...".to_string())
+            .await?;
+        return Ok(());
+    };
+
+    let manager = songbird::get(ctx.serenity_context())
+        .await
+        .expect("Songbird Voice client placed in at initialisation.")
+        .clone();
+
+    let songbird_id = songbird::id::ChannelId::from(channel_id);
+    manager.join(guild.id, songbird_id).await?;
 
     // Load up the file!
     // let file = songbird::input::File::new("yes.mp3");
@@ -81,6 +89,7 @@ async fn main() {
 
     let client = serenity::ClientBuilder::new(token, intents)
         .framework(framework)
+        .register_songbird()
         .await;
     client.unwrap().start().await.unwrap();
 }
