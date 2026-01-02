@@ -1,5 +1,5 @@
 use poise::serenity_prelude as serenity;
-
+use songbird::SerenityInit;
 struct Data {} // User data, which is stored and accessible in all command invocations
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
@@ -7,7 +7,59 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 /// Responds "world" to "hello"
 #[poise::command(prefix_command)]
 async fn hello(ctx: Context<'_>) -> Result<(), Error> {
-    ctx.say("world").await?;
+    ctx.reply("world").await?;
+    Ok(())
+}
+
+/// Joins the user's voice channel and plays the AOE 1 "yes" taunt.
+#[poise::command(prefix_command, guild_only = true)]
+async fn yes(ctx: Context<'_>) -> Result<(), Error> {
+    // Get user's voice channel.
+    let guild = ctx.guild().unwrap().to_owned();
+    let user_id = ctx.author().id;
+    let voice_states = guild.voice_states.get(&user_id);
+
+    let Some(voice_states) = voice_states else {
+        ctx.reply("You must be in a voice channel!".to_string())
+            .await?;
+        return Ok(());
+    };
+
+    let Some(channel_id) = voice_states.channel_id else {
+        ctx.reply("Somehow there's no channel_id, which does not make sense...".to_string())
+            .await?;
+        return Ok(());
+    };
+
+    let manager = songbird::get(ctx.serenity_context())
+        .await
+        .expect("Songbird Voice client placed in at initialisation.")
+        .clone();
+
+    let songbird_id = songbird::id::ChannelId::from(channel_id);
+    // It seems to be fine if there are multiple join calls, probably no need
+    // to add our own conditional here.
+    if let Ok(handler_lock) = manager.join(guild.id, songbird_id).await {
+        let mut handler = handler_lock.lock().await;
+
+        let file = songbird::input::File::new("yes.mp3");
+        handler.play_only_input(file.into());
+    }
+
+    Ok(())
+}
+
+/// Show help menu
+#[poise::command(prefix_command)]
+pub async fn help(
+    ctx: Context<'_>,
+    #[description = "Specific command to show help about"] command: Option<String>,
+) -> Result<(), Error> {
+    let config = poise::builtins::HelpConfiguration {
+        extra_text_at_bottom: "Type `!help command` for more info on a command.",
+        ..Default::default()
+    };
+    poise::builtins::help(ctx, command.as_deref(), config).await?;
     Ok(())
 }
 
@@ -17,9 +69,9 @@ async fn main() {
 
     let intents = serenity::GatewayIntents::non_privileged()
         | serenity::GatewayIntents::GUILD_MESSAGES
-        | serenity::GatewayIntents::MESSAGE_CONTENT;
+        | serenity::GatewayIntents::MESSAGE_CONTENT
+        | serenity::GatewayIntents::GUILD_VOICE_STATES;
 
-    // let intents = serenity::GatewayIntents::non_privileged();
     let prefix_framework_options = poise::PrefixFrameworkOptions {
         prefix: Some("!".to_string()),
         ..Default::default()
@@ -28,7 +80,7 @@ async fn main() {
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             prefix_options: prefix_framework_options,
-            commands: vec![hello()],
+            commands: vec![hello(), help(), yes()],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
@@ -41,6 +93,7 @@ async fn main() {
 
     let client = serenity::ClientBuilder::new(token, intents)
         .framework(framework)
+        .register_songbird()
         .await;
     client.unwrap().start().await.unwrap();
 }
