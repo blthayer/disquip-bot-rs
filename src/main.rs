@@ -148,7 +148,15 @@ async fn list(
                         .as_str(),
                     );
                 }
-                ctx.reply(help_str).await?;
+                if help_str.len() < 2000 {
+                    ctx.reply(help_str).await?;
+                } else {
+                    // Fix this later... Hacky quick shit.
+                    for chunk in help_str.chars().collect::<Vec<_>>().chunks(2000) {
+                        let to_send: String = chunk.iter().collect();
+                        ctx.reply(to_send).await?;
+                    }
+                }
             } else {
                 ctx.reply("The provided category is invalid. Use \"!list\" with no arguments to get valid categories.").await?;
                 return Ok(());
