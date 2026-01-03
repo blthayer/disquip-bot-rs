@@ -142,7 +142,7 @@ async fn list(
                     help_str.push_str(
                         format!(
                             "**{}**: {:?}\n",
-                            idx,
+                            idx - 1,
                             item.file_name().into_string().unwrap()
                         )
                         .as_str(),
