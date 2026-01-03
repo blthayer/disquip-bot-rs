@@ -153,7 +153,7 @@ async fn list(
                     ctx.reply(help_str).await?;
                 } else {
                     // Fix this later... Hacky quick shit.
-                    for chunk in help_str.chars().collect::<Vec<_>>().chunks(1994) {
+                    for chunk in help_str.chars().collect::<Vec<_>>().chunks(1992) {
                         let mut to_send = String::from("```\n");
                         let chunk_str: String = chunk.iter().collect();
                         to_send.push_str(chunk_str.as_str());
