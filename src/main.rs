@@ -132,20 +132,31 @@ async fn list(
     match cat {
         Some(cat) => {
             if let Some(cat_vec) = file_map.get(&cat) {
-                let mut str_vec: Vec<String> = Vec::with_capacity(cat_vec.len());
+                let mut help_str = format!("Available quips for category \"{}\":\n", cat);
                 for (idx, item) in cat_vec.iter().enumerate() {
-                    str_vec.push(format!("{:?}: {:?}", idx, item.file_name()));
+                    help_str.push_str(
+                        format!(
+                            "**{}**: {:?}\n",
+                            idx,
+                            item.file_name().into_string().unwrap()
+                        )
+                        .as_str(),
+                    );
                 }
-                ctx.reply(format!("Available quip categories:\n{:?}", str_vec))
-                    .await?;
+                ctx.reply(help_str).await?;
             } else {
                 ctx.reply("The provided category is invalid. Use \"!list\" with no arguments to get valid categories.").await?;
                 return Ok(());
             }
         }
         None => {
-            let keys: Vec<_> = file_map.keys().cloned().collect();
-            ctx.reply(format!("Quip categories: {:?}", keys)).await?;
+            let mut key_vec: Vec<String> = file_map.keys().cloned().collect();
+            key_vec.sort();
+            let mut help_str = String::from("Quip categories:\n");
+            for key in key_vec {
+                help_str.push_str(format!("**{}**\n", key).as_str());
+            }
+            ctx.reply(help_str).await?;
         }
     };
     Ok(())
