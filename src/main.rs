@@ -148,13 +148,22 @@ async fn list(
                         .as_str(),
                     );
                 }
-                help_str.push_str("\n```");
-                if help_str.len() < 2000 {
+                if help_str.len() < 1996 {
+                    help_str.push_str("\n```");
                     ctx.reply(help_str).await?;
                 } else {
                     // Fix this later... Hacky quick shit.
-                    for chunk in help_str.chars().collect::<Vec<_>>().chunks(1992) {
-                        let mut to_send = String::from("```\n");
+                    for (idx, chunk) in help_str
+                        .chars()
+                        .collect::<Vec<_>>()
+                        .chunks(1992)
+                        .enumerate()
+                    {
+                        let mut to_send = if idx == 0 {
+                            String::new()
+                        } else {
+                            String::from("```\n")
+                        };
                         let chunk_str: String = chunk.iter().collect();
                         to_send.push_str(chunk_str.as_str());
                         to_send.push_str("\n```");
