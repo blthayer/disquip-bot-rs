@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    env,
     fs::{DirEntry, read_dir},
 };
 
@@ -168,7 +169,17 @@ async fn list(
 
 #[tokio::main]
 async fn main() {
-    let file_map = get_file_map("audio".to_string());
+    let args: Vec<String> = env::args().collect();
+
+    let top_dir = if args.len() < 2 {
+        String::from("audio")
+    } else if args.len() == 2 {
+        args[1].to_string()
+    } else {
+        panic!("Provide a single argument, the path to the directory containing audio files.")
+    };
+
+    let file_map = get_file_map(top_dir);
 
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
 
