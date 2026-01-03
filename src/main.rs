@@ -13,14 +13,8 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::PrefixContext<'a, Data, Error>;
 type GenericContext<'a> = poise::Context<'a, Data, Error>;
 
-#[poise::command(prefix_command)]
-async fn hello(ctx: Context<'_>) -> Result<(), Error> {
-    ctx.reply("world").await?;
-    Ok(())
-}
-
 /// Play a quip!
-#[poise::command(prefix_command, guild_only = true)]
+#[poise::command(prefix_command, guild_only = true, hide_in_help = true)]
 async fn join_and_play(
     ctx: Context<'_>,
     #[description = "Quip number"] num: usize,
@@ -91,7 +85,7 @@ pub async fn help(
     #[description = "Specific command to show help about"] command: Option<String>,
 ) -> Result<(), Error> {
     let config = poise::builtins::HelpConfiguration {
-        extra_text_at_bottom: "Type `!help command` for more info on a command.",
+        extra_text_at_bottom: "Type \"!help command\" for more info on a command. \"!list\" is your friend for discovering quips.",
         ..Default::default()
     };
     poise::builtins::help(ctx, command.as_deref(), config).await?;
@@ -128,6 +122,35 @@ fn get_file_map(top_dir: String) -> FileMap {
     map
 }
 
+/// List available quip categories or list available quips for a given command.
+#[poise::command(prefix_command, guild_only = true)]
+async fn list(
+    ctx: Context<'_>,
+    #[description = "Quip category"] cat: Option<String>,
+) -> Result<(), Error> {
+    let file_map = &ctx.data().file_map;
+    match cat {
+        Some(cat) => {
+            if let Some(cat_vec) = file_map.get(&cat) {
+                let mut str_vec: Vec<String> = Vec::with_capacity(cat_vec.len());
+                for (idx, item) in cat_vec.iter().enumerate() {
+                    str_vec.push(format!("{:?}: {:?}", idx, item.file_name()));
+                }
+                ctx.reply(format!("Available quip categories:\n{:?}", str_vec))
+                    .await?;
+            } else {
+                ctx.reply("The provided category is invalid. Use \"!list\" with no arguments to get valid categories.").await?;
+                return Ok(());
+            }
+        }
+        None => {
+            let keys: Vec<_> = file_map.keys().cloned().collect();
+            ctx.reply(format!("Quip categories: {:?}", keys)).await?;
+        }
+    };
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
     let file_map = get_file_map("audio".to_string());
@@ -145,12 +168,14 @@ async fn main() {
     };
 
     let mut command = join_and_play();
+    let mut keys: Vec<_> = file_map.keys().cloned().collect();
+    keys.sort();
     command.aliases = file_map.keys().cloned().collect();
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             prefix_options: prefix_framework_options,
-            commands: vec![hello(), help(), command],
+            commands: vec![list(), help(), command],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
