@@ -137,7 +137,7 @@ async fn list(
     match cat {
         Some(cat) => {
             if let Some(cat_vec) = file_map.get(&cat) {
-                let mut help_str = format!("Available quips for category \"{}\":\n", cat);
+                let mut help_str = format!("Available quips for category \"{}\":\n```\n", cat);
                 for (idx, item) in cat_vec.iter().enumerate() {
                     help_str.push_str(
                         format!(
@@ -148,12 +148,16 @@ async fn list(
                         .as_str(),
                     );
                 }
+                help_str.push_str("\n```");
                 if help_str.len() < 2000 {
                     ctx.reply(help_str).await?;
                 } else {
                     // Fix this later... Hacky quick shit.
-                    for chunk in help_str.chars().collect::<Vec<_>>().chunks(2000) {
-                        let to_send: String = chunk.iter().collect();
+                    for chunk in help_str.chars().collect::<Vec<_>>().chunks(1994) {
+                        let mut to_send = String::from("```\n");
+                        let chunk_str: String = chunk.iter().collect();
+                        to_send.push_str(chunk_str.as_str());
+                        to_send.push_str("\n```");
                         ctx.reply(to_send).await?;
                     }
                 }
