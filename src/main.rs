@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    env,
     fs::{DirEntry, read_dir},
 };
 
@@ -136,18 +137,39 @@ async fn list(
     match cat {
         Some(cat) => {
             if let Some(cat_vec) = file_map.get(&cat) {
-                let mut help_str = format!("Available quips for category \"{}\":\n", cat);
+                let mut help_str = format!("Available quips for category \"{}\":\n```\n", cat);
                 for (idx, item) in cat_vec.iter().enumerate() {
                     help_str.push_str(
                         format!(
-                            "**{}**: {:?}\n",
-                            idx,
+                            "{}: {:?}\n",
+                            idx as u32 + 1,
                             item.file_name().into_string().unwrap()
                         )
                         .as_str(),
                     );
                 }
-                ctx.reply(help_str).await?;
+                if help_str.len() < 1996 {
+                    help_str.push_str("\n```");
+                    ctx.reply(help_str).await?;
+                } else {
+                    // Fix this later... Hacky quick shit.
+                    for (idx, chunk) in help_str
+                        .chars()
+                        .collect::<Vec<_>>()
+                        .chunks(1992)
+                        .enumerate()
+                    {
+                        let mut to_send = if idx == 0 {
+                            String::new()
+                        } else {
+                            String::from("```\n")
+                        };
+                        let chunk_str: String = chunk.iter().collect();
+                        to_send.push_str(chunk_str.as_str());
+                        to_send.push_str("\n```");
+                        ctx.reply(to_send).await?;
+                    }
+                }
             } else {
                 ctx.reply("The provided category is invalid. Use \"!list\" with no arguments to get valid categories.").await?;
                 return Ok(());
@@ -168,7 +190,17 @@ async fn list(
 
 #[tokio::main]
 async fn main() {
-    let file_map = get_file_map("audio".to_string());
+    let args: Vec<String> = env::args().collect();
+
+    let top_dir = if args.len() < 2 {
+        String::from("audio")
+    } else if args.len() == 2 {
+        args[1].to_string()
+    } else {
+        panic!("Provide a single argument, the path to the directory containing audio files.")
+    };
+
+    let file_map = get_file_map(top_dir);
 
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
 
