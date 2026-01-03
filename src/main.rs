@@ -141,7 +141,7 @@ async fn list(
                 for (idx, item) in cat_vec.iter().enumerate() {
                     help_str.push_str(
                         format!(
-                            "**{}**: {:?}\n",
+                            "{}: {:?}\n",
                             idx as u32 + 1,
                             item.file_name().into_string().unwrap()
                         )
