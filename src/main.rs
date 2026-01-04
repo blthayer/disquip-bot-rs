@@ -7,7 +7,7 @@ use std::{
 use poise::serenity_prelude as serenity;
 use songbird::SerenityInit;
 // Event related imports to detect track creation failures.
-// use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
+use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
 type FileMap = HashMap<String, Vec<DirEntry>>;
 struct Data {
     pub file_map: FileMap,
@@ -83,39 +83,52 @@ async fn join(ctx: &Context<'_>) -> Result<(), Error> {
             .await?;
         return Ok(());
     };
+
+    let songbird_id = songbird::id::ChannelId::from(channel_id);
     let manager = songbird::get(ctx.serenity_context())
         .await
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
 
-    let songbird_id = songbird::id::ChannelId::from(channel_id);
+    // Exit early if we're already in the channel.
+    if let Some(handler_lock) = manager.get(ctx.guild_id().unwrap()) {
+        let handler = handler_lock.lock().await;
+
+        if let Some(current_id) = handler.current_channel()
+            && current_id == songbird_id
+        {
+            return Ok(());
+        }
+    };
+
     // It seems to be fine if there are multiple join calls, probably no need
     // to add our own conditional here.
-    manager.join(guild.id, songbird_id).await?;
-    // let handler_lock = manager.join(guild.id, songbird_id).await?;
-    // let mut handler = handler_lock.lock().await;
-    // handler.add_global_event(TrackEvent::Error.into(), TrackErrorNotifier);
+    let handler_lock = manager.join(guild.id, songbird_id).await?;
+    let mut handler = handler_lock.lock().await;
+    // Ensure there's only ever a single event/error handler:
+    handler.remove_all_global_events();
+    handler.add_global_event(TrackEvent::Error.into(), TrackErrorNotifier);
     Ok(())
 }
 
-// struct TrackErrorNotifier;
+struct TrackErrorNotifier;
 
-// #[serenity::async_trait]
-// impl VoiceEventHandler for TrackErrorNotifier {
-//     async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
-//         if let EventContext::Track(track_list) = ctx {
-//             for (state, handle) in *track_list {
-//                 println!(
-//                     "Track {:?} encountered an error: {:?}",
-//                     handle.uuid(),
-//                     state.playing
-//                 );
-//             }
-//         }
+#[serenity::async_trait]
+impl VoiceEventHandler for TrackErrorNotifier {
+    async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
+        if let EventContext::Track(track_list) = ctx {
+            for (state, handle) in *track_list {
+                println!(
+                    "Track {:?} encountered an error: {:?}",
+                    handle.uuid(),
+                    state.playing
+                );
+            }
+        }
 
-//         None
-//     }
-// }
+        None
+    }
+}
 
 /// Show help menu
 #[poise::command(prefix_command)]
