@@ -1,11 +1,11 @@
+use poise::serenity_prelude as serenity;
+use rand::Rng;
+use songbird::SerenityInit;
 use std::{
     collections::HashMap,
     env,
     fs::{DirEntry, read_dir},
 };
-
-use poise::serenity_prelude as serenity;
-use songbird::SerenityInit;
 // Event related imports to detect track creation failures.
 use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
 type FileMap = HashMap<String, Vec<DirEntry>>;
@@ -60,20 +60,20 @@ impl Data {
 
     /// Get a DirEntry from the given index. The index is effectively an
     /// index into the imaginary vector of all DirEntries in the FileMap
-    /// concatenated together.
-    fn get_from_global_index(&self, idx: usize) -> Option<&DirEntry> {
+    /// concatenated together. Also returns the chosen category and index within.
+    fn get_from_global_index(&self, idx: usize) -> Result<(&DirEntry, String, usize), Error> {
         let mut visited: usize = 0;
 
-        for vec in self.file_map.values() {
+        for (cat, vec) in self.file_map.iter() {
             let _idx = idx - visited;
             let _len = vec.len();
             if (idx - visited) < _len {
-                return Some(&vec[_idx]);
+                return Ok((&vec[_idx], cat.to_owned(), _idx));
             };
 
             visited += _len;
         }
-        None
+        Err(format!("The provided idx ({}) to get_from_global_index is too large. Index must be between 0 and {}.", idx, self.map_len).into())
     }
 
     /// Get a vector from the file_map from the given key ("cat" for "category").
@@ -190,7 +190,7 @@ async fn play(ctx: &Context<'_>, dir_entry: &DirEntry) -> Result<(), Error> {
     Ok(())
 }
 
-/// Show help menu
+/// Show help menu.
 #[poise::command(prefix_command)]
 pub async fn help(
     ctx: GenericContext<'_>,
@@ -279,19 +279,46 @@ async fn disconnect(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-// /// Play a globally random quip or play a random quip from a specified category.
-// #[poise::command(prefix_command, guild_only = true)]
-// async fn random(
-//     ctx: Context<'_>,
-//     #[description = "Quip category"] cat: Option<String>,
-// ) -> Result<(), Error> {
-//     // Join the voice channel.
-//     join(&ctx).await?;
+/// Aliases: "!r" and "!rand." Play a random quip from all available quips or play a random quip from a specified category.
+#[poise::command(prefix_command, guild_only = true, aliases("r", "rand"))]
+async fn random(
+    ctx: Context<'_>,
+    #[description = "Quip category"] cat: Option<String>,
+) -> Result<(), Error> {
+    // Join the voice channel.
+    join(&ctx).await?;
 
-//     // Select a quip at random.
-//     play(&ctx, chosen_file).await?;
-//     Ok(())
-// }
+    let data = ctx.data();
+    // Use a block here because the rng needs dropped before the await later.
+    let chosen_file: &DirEntry;
+    let chosen_category: String;
+    let idx: usize;
+    {
+        // Docs say this is a fast, pre-initialized generator. So it should
+        // be cheap to get it, and it's probably not worth fighting through
+        // the thread safety stuff to put the rng on the Data struct as a field.
+        let mut rng = rand::rng();
+        if let Some(_cat) = cat {
+            let file_vec = data.get_vec(&_cat)?;
+            idx = rng.random_range(0..file_vec.len());
+            chosen_file = &file_vec[idx];
+            chosen_category = _cat;
+        } else {
+            (chosen_file, chosen_category, idx) =
+                data.get_from_global_index(rng.random_range(0..data.map_len))?;
+        }
+    };
+    ctx.reply(format!(
+        "Playing quip \"{} {}\" ({})",
+        chosen_category,
+        // Convert to 1-based indexing.
+        idx as u32 + 1,
+        chosen_file.file_name().into_string().unwrap()
+    ))
+    .await?;
+    play(&ctx, chosen_file).await?;
+    Ok(())
+}
 
 #[tokio::main]
 async fn main() {
@@ -327,7 +354,7 @@ async fn main() {
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             prefix_options: prefix_framework_options,
-            commands: vec![list(), disconnect(), help(), command],
+            commands: vec![list(), random(), disconnect(), help(), command],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
