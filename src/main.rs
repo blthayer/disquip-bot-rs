@@ -50,19 +50,7 @@ async fn join_and_play(
             return Ok(());
         }
     }
-    let manager = songbird::get(ctx.serenity_context())
-        .await
-        .expect("Songbird Voice client placed in at initialisation.")
-        .clone();
-
-    // TODO: Double unwrapping here... Better error handling is more better.
-    let handler_lock = manager.get(ctx.guild_id().unwrap()).unwrap();
-    let mut handler = handler_lock.lock().await;
-
-    let file = songbird::input::File::new(chosen_file.path());
-    // TODO: probably need some error reporting here - it silently fails right now.
-    handler.play_only_input(file.into());
-
+    play(&ctx, chosen_file).await?;
     Ok(())
 }
 
@@ -130,6 +118,22 @@ impl VoiceEventHandler for TrackErrorNotifier {
     }
 }
 
+async fn play(ctx: &Context<'_>, dir_entry: &DirEntry) -> Result<(), Error> {
+    let manager = songbird::get(ctx.serenity_context())
+        .await
+        .expect("Songbird Voice client placed in at initialisation.")
+        .clone();
+
+    // TODO: Double unwrapping here... Better error handling is more better.
+    let handler_lock = manager.get(ctx.guild_id().unwrap()).unwrap();
+    let mut handler = handler_lock.lock().await;
+
+    let file = songbird::input::File::new(dir_entry.path());
+    // TODO: probably need some error reporting here - it silently fails right now.
+    handler.play_only_input(file.into());
+
+    Ok(())
+}
 /// Show help menu
 #[poise::command(prefix_command)]
 pub async fn help(
