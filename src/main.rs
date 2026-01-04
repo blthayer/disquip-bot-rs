@@ -6,6 +6,8 @@ use std::{
 
 use poise::serenity_prelude as serenity;
 use songbird::SerenityInit;
+// Event related imports to detect track creation failures.
+// use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
 type FileMap = HashMap<String, Vec<DirEntry>>;
 struct Data {
     pub file_map: FileMap,
@@ -20,23 +22,10 @@ async fn join_and_play(
     ctx: Context<'_>,
     #[description = "Quip number"] num: usize,
 ) -> Result<(), Error> {
-    // Get user's voice channel.
-    let guild = ctx.guild().unwrap().to_owned();
-    let user_id = ctx.author().id;
-    let voice_states = guild.voice_states.get(&user_id);
+    // Join the voice channel.
+    join(&ctx).await?;
 
-    let Some(voice_states) = voice_states else {
-        ctx.reply("You must be in a voice channel!".to_string())
-            .await?;
-        return Ok(());
-    };
-
-    let Some(channel_id) = voice_states.channel_id else {
-        ctx.reply("Somehow there's no channel_id, which does not make sense...".to_string())
-            .await?;
-        return Ok(());
-    };
-
+    // Get the chosen_file.
     let command = ctx.invoked_command_name();
     let file_vec = ctx.data().file_map.get(ctx.invoked_command_name());
     let chosen_file: &DirEntry;
@@ -66,10 +55,8 @@ async fn join_and_play(
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
 
-    let songbird_id = songbird::id::ChannelId::from(channel_id);
-    // It seems to be fine if there are multiple join calls, probably no need
-    // to add our own conditional here.
-    let handler_lock = manager.join(guild.id, songbird_id).await?;
+    // TODO: Double unwrapping here... Better error handling is more better.
+    let handler_lock = manager.get(ctx.guild_id().unwrap()).unwrap();
     let mut handler = handler_lock.lock().await;
 
     let file = songbird::input::File::new(chosen_file.path());
@@ -78,6 +65,57 @@ async fn join_and_play(
 
     Ok(())
 }
+
+async fn join(ctx: &Context<'_>) -> Result<(), Error> {
+    // Get user's voice channel.
+    let guild = ctx.guild().unwrap().to_owned();
+    let user_id = ctx.author().id;
+    let voice_states = guild.voice_states.get(&user_id);
+
+    let Some(voice_states) = voice_states else {
+        ctx.reply("You must be in a voice channel!".to_string())
+            .await?;
+        return Ok(());
+    };
+
+    let Some(channel_id) = voice_states.channel_id else {
+        ctx.reply("Somehow there's no channel_id, which does not make sense...".to_string())
+            .await?;
+        return Ok(());
+    };
+    let manager = songbird::get(ctx.serenity_context())
+        .await
+        .expect("Songbird Voice client placed in at initialisation.")
+        .clone();
+
+    let songbird_id = songbird::id::ChannelId::from(channel_id);
+    // It seems to be fine if there are multiple join calls, probably no need
+    // to add our own conditional here.
+    manager.join(guild.id, songbird_id).await?;
+    // let handler_lock = manager.join(guild.id, songbird_id).await?;
+    // let mut handler = handler_lock.lock().await;
+    // handler.add_global_event(TrackEvent::Error.into(), TrackErrorNotifier);
+    Ok(())
+}
+
+// struct TrackErrorNotifier;
+
+// #[serenity::async_trait]
+// impl VoiceEventHandler for TrackErrorNotifier {
+//     async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
+//         if let EventContext::Track(track_list) = ctx {
+//             for (state, handle) in *track_list {
+//                 println!(
+//                     "Track {:?} encountered an error: {:?}",
+//                     handle.uuid(),
+//                     state.playing
+//                 );
+//             }
+//         }
+
+//         None
+//     }
+// }
 
 /// Show help menu
 #[poise::command(prefix_command)]
