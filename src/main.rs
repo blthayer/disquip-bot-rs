@@ -129,11 +129,11 @@ async fn play(ctx: &Context<'_>, dir_entry: &DirEntry) -> Result<(), Error> {
     let mut handler = handler_lock.lock().await;
 
     let file = songbird::input::File::new(dir_entry.path());
-    // TODO: probably need some error reporting here - it silently fails right now.
     handler.play_only_input(file.into());
 
     Ok(())
 }
+
 /// Show help menu
 #[poise::command(prefix_command)]
 pub async fn help(
