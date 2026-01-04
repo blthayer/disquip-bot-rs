@@ -69,12 +69,12 @@ async fn join_and_play(
     let songbird_id = songbird::id::ChannelId::from(channel_id);
     // It seems to be fine if there are multiple join calls, probably no need
     // to add our own conditional here.
-    if let Ok(handler_lock) = manager.join(guild.id, songbird_id).await {
-        let mut handler = handler_lock.lock().await;
+    let handler_lock = manager.join(guild.id, songbird_id).await?;
+    let mut handler = handler_lock.lock().await;
 
-        let file = songbird::input::File::new(chosen_file.path());
-        handler.play_only_input(file.into());
-    }
+    let file = songbird::input::File::new(chosen_file.path());
+    // TODO: probably need some error reporting here - it silently fails right now.
+    handler.play_only_input(file.into());
 
     Ok(())
 }
@@ -188,6 +188,20 @@ async fn list(
     Ok(())
 }
 
+/// Disconnect the bot from its current voice channel.
+#[poise::command(prefix_command)]
+async fn disconnect(ctx: Context<'_>) -> Result<(), Error> {
+    let guild = ctx.guild().unwrap().to_owned();
+
+    let manager = songbird::get(ctx.serenity_context())
+        .await
+        .expect("Songbird Voice client placed in at initialisation.")
+        .clone();
+
+    manager.remove(guild.id).await?;
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
     let args: Vec<String> = env::args().collect();
@@ -222,7 +236,7 @@ async fn main() {
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             prefix_options: prefix_framework_options,
-            commands: vec![list(), help(), command],
+            commands: vec![list(), disconnect(), help(), command],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
