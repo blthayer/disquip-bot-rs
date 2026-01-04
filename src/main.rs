@@ -105,7 +105,7 @@ async fn join_and_play(
     let chosen_file = match attempt_chosen_file {
         Some(chosen_file) => chosen_file,
         None => {
-            ctx.reply(format!("The given integer \"{:?}\" is invalid. Valid integers for the {:?} command range from 1 to {:?}", num, command, file_vec.len()))
+            ctx.say(format!("The given integer \"{:?}\" is invalid. Valid integers for the {:?} command range from 1 to {:?}", num, command, file_vec.len()))
             .await?;
             return Ok(());
         }
@@ -231,7 +231,7 @@ async fn list(
             }
             if help_str.len() < 1996 {
                 help_str.push_str("\n```");
-                ctx.reply(help_str).await?;
+                ctx.say(help_str).await?;
             } else {
                 // Fix this later... Hacky quick shit.
                 for (idx, chunk) in help_str
@@ -248,7 +248,7 @@ async fn list(
                     let chunk_str: String = chunk.iter().collect();
                     to_send.push_str(chunk_str.as_str());
                     to_send.push_str("\n```");
-                    ctx.reply(to_send).await?;
+                    ctx.say(to_send).await?;
                 }
             }
         }
@@ -259,7 +259,7 @@ async fn list(
             for key in key_vec {
                 help_str.push_str(format!("**{}**\n", key).as_str());
             }
-            ctx.reply(help_str).await?;
+            ctx.say(help_str).await?;
         }
     };
     Ok(())
@@ -308,7 +308,7 @@ async fn random(
                 data.get_from_global_index(rng.random_range(0..data.map_len))?;
         }
     };
-    ctx.reply(format!(
+    ctx.say(format!(
         "Playing quip \"{} {}\" ({})",
         chosen_category,
         // Convert to 1-based indexing.
