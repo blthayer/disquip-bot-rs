@@ -9,12 +9,85 @@ use songbird::SerenityInit;
 // Event related imports to detect track creation failures.
 use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
 type FileMap = HashMap<String, Vec<DirEntry>>;
-struct Data {
-    pub file_map: FileMap,
-}
+
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::PrefixContext<'a, Data, Error>;
 type GenericContext<'a> = poise::Context<'a, Data, Error>;
+
+struct Data {
+    // Map of quip categories to directory entries.
+    pub file_map: FileMap,
+    pub map_len: usize,
+}
+
+impl Data {
+    fn new(top_dir: String) -> Data {
+        // Initialize the file map and a counter for the total number of DirEntries.
+        let mut file_map: HashMap<String, Vec<DirEntry>> = HashMap::new();
+        let mut map_len: usize = 0;
+
+        // Loop over directories within the top_dir and fill out the HashMap.
+        let result = read_dir(top_dir).unwrap();
+        for r in result {
+            let u = r.unwrap();
+            // Only work with directories.
+            if u.file_type().unwrap().is_dir() {
+                // Iterate over the files and place in the HashMap using the
+                // directory's name as a key.
+                let key = u.file_name().into_string().unwrap();
+                let files = read_dir(u.path()).unwrap();
+                for f in files {
+                    let _f = f.unwrap();
+                    match file_map.entry(key.to_owned()) {
+                        std::collections::hash_map::Entry::Occupied(mut oe) => {
+                            oe.get_mut().push(_f);
+                        }
+                        std::collections::hash_map::Entry::Vacant(ve) => {
+                            ve.insert(vec![_f]);
+                        }
+                    }
+                    map_len += 1;
+                }
+            }
+        }
+
+        // Sort.
+        for val in file_map.values_mut() {
+            val.sort_by_key(|a| a.path());
+        }
+        Data { file_map, map_len }
+    }
+
+    /// Get a DirEntry from the given index. The index is effectively an
+    /// index into the imaginary vector of all DirEntries in the FileMap
+    /// concatenated together.
+    fn get_from_global_index(&self, idx: usize) -> Option<&DirEntry> {
+        let mut visited: usize = 0;
+
+        for vec in self.file_map.values() {
+            let _idx = idx - visited;
+            let _len = vec.len();
+            if (idx - visited) < _len {
+                return Some(&vec[_idx]);
+            };
+
+            visited += _len;
+        }
+        None
+    }
+
+    /// Get a vector from the file_map from the given key ("cat" for "category").
+    /// If the key is not present, return an error which eventually gets floated up
+    /// to the user.
+    fn get_vec(&self, cat: &String) -> Result<&Vec<DirEntry>, Error> {
+        if let Some(cat_vec) = self.file_map.get(cat) {
+            return Ok(cat_vec);
+        };
+
+        // TODO: How does "into" work?
+        Err(format!("The provided category {:?} is invalid. Use \"!list\" with no arguments to get valid categories.", cat).into())
+    }
+}
 
 /// Play a quip!
 #[poise::command(prefix_command, guild_only = true, hide_in_help = true)]
@@ -26,30 +99,17 @@ async fn join_and_play(
     join(&ctx).await?;
 
     // Get the chosen_file.
-    let command = ctx.invoked_command_name();
-    let file_vec = ctx.data().file_map.get(ctx.invoked_command_name());
-    let chosen_file: &DirEntry;
-    match file_vec {
-        Some(file_vec) => {
-            let attempt_chosen_file = file_vec.get(num - 1);
-            match attempt_chosen_file {
-                Some(_chosen_file) => chosen_file = _chosen_file,
-                None => {
-                    ctx.reply(format!("The given integer \"{:?}\" is invalid. Valid integers for the {:?} command range from 1 to {:?}", num, command, file_vec.len()))
-                    .await?;
-                    return Ok(());
-                }
-            }
-        }
+    let command = ctx.invoked_command_name().to_string();
+    let file_vec = ctx.data().get_vec(&command)?;
+    let attempt_chosen_file = file_vec.get(num - 1);
+    let chosen_file = match attempt_chosen_file {
+        Some(chosen_file) => chosen_file,
         None => {
-            ctx.reply(format!(
-                "The given command \"{:?}\" is not valid, see \"!help\"",
-                command
-            ))
+            ctx.reply(format!("The given integer \"{:?}\" is invalid. Valid integers for the {:?} command range from 1 to {:?}", num, command, file_vec.len()))
             .await?;
             return Ok(());
         }
-    }
+    };
     play(&ctx, chosen_file).await?;
     Ok(())
 }
@@ -61,15 +121,11 @@ async fn join(ctx: &Context<'_>) -> Result<(), Error> {
     let voice_states = guild.voice_states.get(&user_id);
 
     let Some(voice_states) = voice_states else {
-        ctx.reply("You must be in a voice channel!".to_string())
-            .await?;
-        return Ok(());
+        return Err("You must be in a voice channel to play quips!".into());
     };
 
     let Some(channel_id) = voice_states.channel_id else {
-        ctx.reply("Somehow there's no channel_id, which does not make sense...".to_string())
-            .await?;
-        return Ok(());
+        return Err("Failed to get voice channel ID (which is very, very odd...)".into());
     };
 
     let songbird_id = songbird::id::ChannelId::from(channel_id);
@@ -152,86 +208,52 @@ Type \"!help command\" for more info on a command.",
     Ok(())
 }
 
-fn get_file_map(top_dir: String) -> FileMap {
-    let mut map: HashMap<String, Vec<DirEntry>> = HashMap::new();
-
-    let result = read_dir(top_dir).unwrap();
-    for r in result {
-        let u = r.unwrap();
-        if u.file_type().unwrap().is_dir() {
-            let files = read_dir(u.path()).unwrap();
-            for f in files {
-                let _f = f.unwrap();
-                let key = u.file_name().into_string().unwrap();
-                match map.entry(key) {
-                    std::collections::hash_map::Entry::Occupied(mut oe) => {
-                        oe.get_mut().push(_f);
-                    }
-                    std::collections::hash_map::Entry::Vacant(ve) => {
-                        ve.insert(vec![_f]);
-                    }
-                }
-            }
-        }
-    }
-
-    // Sort.
-    for val in map.values_mut() {
-        val.sort_by_key(|a| a.path());
-    }
-    map
-}
-
 /// List available quip categories or list available quips for a given command.
 #[poise::command(prefix_command, guild_only = true)]
 async fn list(
     ctx: Context<'_>,
     #[description = "Quip category"] cat: Option<String>,
 ) -> Result<(), Error> {
-    let file_map = &ctx.data().file_map;
+    let data = ctx.data();
     match cat {
-        Some(cat) => {
-            if let Some(cat_vec) = file_map.get(&cat) {
-                let mut help_str = format!("Available quips for category \"{}\":\n```\n", cat);
-                for (idx, item) in cat_vec.iter().enumerate() {
-                    help_str.push_str(
-                        format!(
-                            "{}: {:?}\n",
-                            idx as u32 + 1,
-                            item.file_name().into_string().unwrap()
-                        )
-                        .as_str(),
-                    );
-                }
-                if help_str.len() < 1996 {
-                    help_str.push_str("\n```");
-                    ctx.reply(help_str).await?;
-                } else {
-                    // Fix this later... Hacky quick shit.
-                    for (idx, chunk) in help_str
-                        .chars()
-                        .collect::<Vec<_>>()
-                        .chunks(1992)
-                        .enumerate()
-                    {
-                        let mut to_send = if idx == 0 {
-                            String::new()
-                        } else {
-                            String::from("```\n")
-                        };
-                        let chunk_str: String = chunk.iter().collect();
-                        to_send.push_str(chunk_str.as_str());
-                        to_send.push_str("\n```");
-                        ctx.reply(to_send).await?;
-                    }
-                }
+        Some(_cat) => {
+            let cat_vec = data.get_vec(&_cat)?;
+            let mut help_str = format!("Available quips for category \"{}\":\n```\n", _cat);
+            for (idx, item) in cat_vec.iter().enumerate() {
+                help_str.push_str(
+                    format!(
+                        "{}: {:?}\n",
+                        idx as u32 + 1,
+                        item.file_name().into_string().unwrap()
+                    )
+                    .as_str(),
+                );
+            }
+            if help_str.len() < 1996 {
+                help_str.push_str("\n```");
+                ctx.reply(help_str).await?;
             } else {
-                ctx.reply("The provided category is invalid. Use \"!list\" with no arguments to get valid categories.").await?;
-                return Ok(());
+                // Fix this later... Hacky quick shit.
+                for (idx, chunk) in help_str
+                    .chars()
+                    .collect::<Vec<_>>()
+                    .chunks(1992)
+                    .enumerate()
+                {
+                    let mut to_send = if idx == 0 {
+                        String::new()
+                    } else {
+                        String::from("```\n")
+                    };
+                    let chunk_str: String = chunk.iter().collect();
+                    to_send.push_str(chunk_str.as_str());
+                    to_send.push_str("\n```");
+                    ctx.reply(to_send).await?;
+                }
             }
         }
         None => {
-            let mut key_vec: Vec<String> = file_map.keys().cloned().collect();
+            let mut key_vec: Vec<String> = data.file_map.keys().cloned().collect();
             key_vec.sort();
             let mut help_str = String::from("Quip categories:\n");
             for key in key_vec {
@@ -244,7 +266,7 @@ async fn list(
 }
 
 /// Disconnect the bot from its current voice channel.
-#[poise::command(prefix_command)]
+#[poise::command(prefix_command, guild_only = true)]
 async fn disconnect(ctx: Context<'_>) -> Result<(), Error> {
     let guild = ctx.guild().unwrap().to_owned();
 
@@ -256,6 +278,20 @@ async fn disconnect(ctx: Context<'_>) -> Result<(), Error> {
     manager.remove(guild.id).await?;
     Ok(())
 }
+
+// /// Play a globally random quip or play a random quip from a specified category.
+// #[poise::command(prefix_command, guild_only = true)]
+// async fn random(
+//     ctx: Context<'_>,
+//     #[description = "Quip category"] cat: Option<String>,
+// ) -> Result<(), Error> {
+//     // Join the voice channel.
+//     join(&ctx).await?;
+
+//     // Select a quip at random.
+//     play(&ctx, chosen_file).await?;
+//     Ok(())
+// }
 
 #[tokio::main]
 async fn main() {
@@ -269,9 +305,9 @@ async fn main() {
         panic!("Provide a single argument, the path to the directory containing audio files.")
     };
 
-    let file_map = get_file_map(top_dir);
-
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
+
+    let data = Data::new(top_dir);
 
     let intents = serenity::GatewayIntents::non_privileged()
         | serenity::GatewayIntents::GUILD_MESSAGES
@@ -284,9 +320,9 @@ async fn main() {
     };
 
     let mut command = join_and_play();
-    let mut keys: Vec<_> = file_map.keys().cloned().collect();
+    let mut keys: Vec<_> = data.file_map.keys().cloned().collect();
     keys.sort();
-    command.aliases = file_map.keys().cloned().collect();
+    command.aliases = data.file_map.keys().cloned().collect();
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
@@ -297,7 +333,7 @@ async fn main() {
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data { file_map })
+                Ok(data)
             })
         })
         .build();
