@@ -35,7 +35,7 @@ async fn join_and_play(
             match attempt_chosen_file {
                 Some(_chosen_file) => chosen_file = _chosen_file,
                 None => {
-                    ctx.reply(format!("The given integer \"{:?}\" is invalid. Valid integers for the \"{:?}\" command range from 1 to {:?}", num, command, file_vec.len()))
+                    ctx.reply(format!("The given integer \"{:?}\" is invalid. Valid integers for the {:?} command range from 1 to {:?}", num, command, file_vec.len()))
                     .await?;
                     return Ok(());
                 }
