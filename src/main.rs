@@ -1,3 +1,5 @@
+use rapidfuzz::distance::damerau_levenshtein::BatchComparator;
+
 use poise::serenity_prelude as serenity;
 use rand::Rng;
 use songbird::SerenityInit;
@@ -5,6 +7,7 @@ use std::{
     collections::HashMap,
     env,
     fs::{DirEntry, read_dir},
+    str::Bytes,
 };
 // Event related imports to detect track creation failures.
 use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
@@ -87,6 +90,128 @@ impl Data {
         // TODO: How does "into" work?
         Err(format!("The provided category {:?} is invalid. Use \"!list\" with no arguments to get valid categories.", cat).into())
     }
+
+    // fn fuzzy(
+    //     &self,
+    //     search: String,
+    //     capacity: usize,
+    //     category: Option<String>,
+    // ) -> Result<&Vec<DirEntry>, Error> {
+    //     let mut best_scores: Vec<(String, u32)> = Vec::with_capacity(capacity);
+    //     // Note: using .bytes assumes ASCII input.
+    //     let scorer = BatchComparator::new(search.bytes());
+
+    //     let iter;
+    //     if let Some(cat) = category {
+    //         let vec = self.file_map.get(&cat);
+
+    //         if let Some(cat_vec) = vec {
+    //             iter = [(cat, *cat_vec)].iter();
+    //         } else {
+    //             return Err(format!("The provided category {:?} is invalid. Use \"!list\" with no arguments to get valid categories.", cat).into());
+    //         }
+    //     } else {
+    //         iter = self.file_map.iter();
+    //     }
+
+    //     // for (cat, vec) in self.file_map.iter() {
+    //     //     for dir_entry in vec {
+    //     //         let score
+    //     //     }
+    //     // }
+    // }
+}
+
+// use rapidfuzz::distance::damerau_levenshtein::BatchComparator;
+
+// fn main() {
+//     let words = ["kitten", "rainbow", "mitten", "smitten", "orange", "banana"];
+//     let capacity = 1;
+//     let mut best_scores: Vec<(String, u32)> = Vec::with_capacity(capacity);
+
+//     let scorer = BatchComparator::new("mitten".bytes());
+
+//     let mut max_idx: usize = 0;
+//     for (idx, word) in words.iter().enumerate() {
+//         // Compute score.
+//         let score = scorer.distance(word.bytes()) as u32;
+//         println!("{}:{}", word, score);
+
+//         // Simply push the (word, score) pair in if the vector is not at capacity:
+//         if idx < capacity {
+//             best_scores.push((word.to_string(), score));
+//             continue;
+//         }
+
+//         // Once we've hit capacity, compute the max index.
+//         if idx == capacity {
+//             max_idx = get_max_idx(&best_scores);
+//         }
+
+//         // Update best_scores if this score is better, then recompute
+//         // the max_idx.
+//         if score < best_scores[max_idx].1 {
+//             best_scores[max_idx] = (word.to_string(), score);
+
+//             max_idx = get_max_idx(&best_scores);
+//         }
+//     }
+
+//     best_scores.sort_by_key(|k| k.1);
+//     println!("{:?}", best_scores);
+// }
+
+// fn get_max_idx(v: &[(String, u32)]) -> usize {
+//     let mut max_idx = 0;
+//     for (_idx, pair) in v.iter().enumerate() {
+//         if pair.1 > v[max_idx].1 {
+//             max_idx = _idx;
+//         }
+//     }
+//     max_idx
+// }
+
+fn score(
+    category: &String,
+    dir_vec: &[DirEntry],
+    scorer: &BatchComparator<&[u8]>,
+    best_scores: &mut [(String, DirEntry, u32)],
+) -> &[(String, DirEntry, u32)] {
+    let mut max_idx: usize = 0;
+    for (idx, dir_entry) in dir_vec.iter().enumerate() {
+        // Compute score.
+        let score = scorer.distance(
+            format!(
+                "{}/{}",
+                category,
+                dir_entry.file_name().into_string().unwrap()
+            )
+            .bytes(),
+        ) as u32;
+        println!("{}:{}", word, score);
+
+        // Simply push the (word, score) pair in if the vector is not at capacity:
+        if idx < capacity {
+            best_scores.push((word.to_string(), score));
+            continue;
+        }
+
+        // Once we've hit capacity, compute the max index.
+        if idx == capacity {
+            max_idx = get_max_idx(&best_scores);
+        }
+
+        // Update best_scores if this score is better, then recompute
+        // the max_idx.
+        if score < best_scores[max_idx].1 {
+            best_scores[max_idx] = (word.to_string(), score);
+
+            max_idx = get_max_idx(&best_scores);
+        }
+    }
+
+    best_scores.sort_by_key(|k| k.1);
+    best_scores
 }
 
 /// Play a quip!
