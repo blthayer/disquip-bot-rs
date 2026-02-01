@@ -1,5 +1,5 @@
 mod civ;
-use crate::civ::draw_leaders;
+use crate::civ::{Leader, draw_leaders};
 use poise::serenity_prelude as serenity;
 use rand::Rng;
 use songbird::SerenityInit;
@@ -227,22 +227,9 @@ async fn list(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
                 help_str.push_str("\n```");
                 ctx.say(help_str).await?;
             } else {
-                // Fix this later... Hacky quick shit.
-                for (idx, chunk) in help_str
-                    .chars()
-                    .collect::<Vec<_>>()
-                    .chunks(1992)
-                    .enumerate()
-                {
-                    let mut to_send = if idx == 0 {
-                        String::new()
-                    } else {
-                        String::from("```\n")
-                    };
-                    let chunk_str: String = chunk.iter().collect();
-                    to_send.push_str(chunk_str.as_str());
-                    to_send.push_str("\n```");
-                    ctx.say(to_send).await?;
+                let to_say = split_str(&help_str);
+                for say in to_say {
+                    ctx.say(say).await?;
                 }
             }
         }
@@ -257,6 +244,35 @@ async fn list(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
         }
     };
     Ok(())
+}
+
+/// Split string to avoid Discord message limit. The string will be
+/// surrounded with backticks for literal formatting.
+fn split_str(to_split: &str) -> Vec<String> {
+    // We could calculate the capacity, but that's overkill.
+    let mut out = Vec::new();
+
+    // I have no idea if this code is "good," but it works?
+    // My understanding of strings is apparently not adequately
+    // deep. There's probably a way to do this without copying,
+    // but oh well.
+    for (idx, chunk) in to_split
+        .chars()
+        .collect::<Vec<_>>()
+        .chunks(1992)
+        .enumerate()
+    {
+        let mut to_push = if idx == 0 {
+            String::new()
+        } else {
+            String::from("```\n")
+        };
+        let chunk_str: String = chunk.iter().collect();
+        to_push.push_str(chunk_str.as_str());
+        to_push.push_str("\n```");
+        out.push(to_push);
+    }
+    out
 }
 
 /// Disconnect the bot from its current voice channel.
@@ -326,8 +342,17 @@ async fn civ(ctx: Context<'_>) -> Result<(), Error> {
 /// There will be no duplicate leaders or civilizations.
 #[poise::command(prefix_command)]
 async fn draft(ctx: Context<'_>, n_players: usize, n_leaders: usize) -> Result<(), Error> {
-    let _leaders = draw_leaders(n_players * n_leaders);
-    ctx.say("WIP.").await?;
+    // Draw leaders.
+    let leaders = draw_leaders(n_players * n_leaders);
+
+    // Slice.
+    let sliced: Vec<&[Leader]> = leaders.chunks(n_players).collect();
+
+    let leader_str = format!("```\n{:?}", sliced);
+    let to_say = split_str(&leader_str);
+    for say in to_say {
+        ctx.say(say).await?;
+    }
     Ok(())
 }
 
