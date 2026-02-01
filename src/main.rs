@@ -342,14 +342,13 @@ async fn civ_draft(ctx: Context<'_>, n_players: usize, n_leaders: usize) -> Resu
 
     let mut leader_str = String::from("```\n");
 
-    for (idx, slice) in leaders.chunks(n_players).enumerate() {
-        leader_str.push_str(format!("Player {}: ", idx + 1).as_str());
+    for (idx, slice) in leaders.chunks(n_leaders).enumerate() {
+        leader_str.push_str(format!("Player {}:\n", idx + 1).as_str());
         let mut sub_str = String::new();
         for leader in slice {
-            sub_str.push_str(format!("{{{}: {}}}, ", leader.name, leader.civ).as_str());
+            sub_str.push_str(format!("    {}: {}\n", leader.name, leader.civ).as_str());
         }
-        // Hacky, but it works. Remove the last trailing comma and space.
-        sub_str.pop();
+        // Hacky, but it works. Remove the last newline.
         sub_str.pop();
         leader_str.push_str(sub_str.as_str());
         leader_str.push('\n');
