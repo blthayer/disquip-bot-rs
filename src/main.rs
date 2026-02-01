@@ -1,3 +1,5 @@
+mod civ;
+use crate::civ::{GAME_MODES, draw_leaders, draw_modes};
 use poise::serenity_prelude as serenity;
 use rand::Rng;
 use songbird::SerenityInit;
@@ -91,10 +93,7 @@ impl Data {
 
 /// Play a quip!
 #[poise::command(prefix_command, guild_only = true, hide_in_help = true)]
-async fn join_and_play(
-    ctx: Context<'_>,
-    #[description = "Quip number"] num: usize,
-) -> Result<(), Error> {
+async fn join_and_play(ctx: Context<'_>, num: usize) -> Result<(), Error> {
     // Join the voice channel.
     join(&ctx).await?;
 
@@ -192,13 +191,10 @@ async fn play(ctx: &Context<'_>, dir_entry: &DirEntry) -> Result<(), Error> {
 
 /// Show help menu.
 #[poise::command(prefix_command)]
-pub async fn help(
-    ctx: GenericContext<'_>,
-    #[description = "Specific command to show help about"] command: Option<String>,
-) -> Result<(), Error> {
+pub async fn help(ctx: GenericContext<'_>, command: Option<String>) -> Result<(), Error> {
     let config = poise::builtins::HelpConfiguration {
         extra_text_at_bottom: "\
-Type \"!category number\" (e.g., \"aoe1 1\") to play a quip!
+Type \"!category number\" (e.g., \"a1 1\") to play a quip!
 Type \"!list\" to discover available quip categories.
 Type \"!list category\" to get available quip numbers for the given category.
 Type \"!help command\" for more info on a command.",
@@ -208,12 +204,10 @@ Type \"!help command\" for more info on a command.",
     Ok(())
 }
 
-/// List available quip categories or list available quips for a given command.
+/// List quip categories or list quips for a given command.
+/// E.g., "!list" or "!list a1"
 #[poise::command(prefix_command, guild_only = true)]
-async fn list(
-    ctx: Context<'_>,
-    #[description = "Quip category"] cat: Option<String>,
-) -> Result<(), Error> {
+async fn list(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
     let data = ctx.data();
     match cat {
         Some(_cat) => {
@@ -233,22 +227,9 @@ async fn list(
                 help_str.push_str("\n```");
                 ctx.say(help_str).await?;
             } else {
-                // Fix this later... Hacky quick shit.
-                for (idx, chunk) in help_str
-                    .chars()
-                    .collect::<Vec<_>>()
-                    .chunks(1992)
-                    .enumerate()
-                {
-                    let mut to_send = if idx == 0 {
-                        String::new()
-                    } else {
-                        String::from("```\n")
-                    };
-                    let chunk_str: String = chunk.iter().collect();
-                    to_send.push_str(chunk_str.as_str());
-                    to_send.push_str("\n```");
-                    ctx.say(to_send).await?;
+                let to_say = split_str(&help_str);
+                for say in to_say {
+                    ctx.say(say).await?;
                 }
             }
         }
@@ -265,6 +246,35 @@ async fn list(
     Ok(())
 }
 
+/// Split string to avoid Discord message limit. The string will be
+/// surrounded with backticks for literal formatting.
+fn split_str(to_split: &str) -> Vec<String> {
+    // We could calculate the capacity, but that's overkill.
+    let mut out = Vec::new();
+
+    // I have no idea if this code is "good," but it works?
+    // My understanding of strings is apparently not adequately
+    // deep. There's probably a way to do this without copying,
+    // but oh well.
+    for (idx, chunk) in to_split
+        .chars()
+        .collect::<Vec<_>>()
+        .chunks(1992)
+        .enumerate()
+    {
+        let mut to_push = if idx == 0 {
+            String::new()
+        } else {
+            String::from("```\n")
+        };
+        let chunk_str: String = chunk.iter().collect();
+        to_push.push_str(chunk_str.as_str());
+        to_push.push_str("\n```");
+        out.push(to_push);
+    }
+    out
+}
+
 /// Disconnect the bot from its current voice channel.
 #[poise::command(prefix_command, guild_only = true)]
 async fn disconnect(ctx: Context<'_>) -> Result<(), Error> {
@@ -279,12 +289,12 @@ async fn disconnect(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-/// Aliases: "!r" and "!rand." Play a random quip from all available quips or play a random quip from a specified category.
+/// Aka "!r" or "!rand." Play a random quip.
+///
+/// E.g., "!r" to play a globally random quip or "!r a1" to play a random
+/// quip from the "a1" category.
 #[poise::command(prefix_command, guild_only = true, aliases("r", "rand"))]
-async fn random(
-    ctx: Context<'_>,
-    #[description = "Quip category"] cat: Option<String>,
-) -> Result<(), Error> {
+async fn random(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
     // Join the voice channel.
     join(&ctx).await?;
 
@@ -317,6 +327,119 @@ async fn random(
     ))
     .await?;
     play(&ctx, chosen_file).await?;
+    Ok(())
+}
+
+/// Draw random leaders: "!civ_draft n_players n_leaders."
+///
+/// Example: "!civ_draft 4 5" to draw five leaders each for four players.
+///
+/// There will be no duplicate leaders or civilizations.
+#[poise::command(prefix_command)]
+async fn civ_draft(ctx: Context<'_>, n_players: usize, n_leaders: usize) -> Result<(), Error> {
+    // Draw leaders.
+    let leaders = draw_leaders(n_players * n_leaders);
+
+    let mut leader_str = String::from("```\n");
+
+    for (idx, slice) in leaders.chunks(n_players).enumerate() {
+        leader_str.push_str(format!("Player {}: ", idx + 1).as_str());
+        let mut sub_str = String::new();
+        for leader in slice {
+            sub_str.push_str(format!("{{{}: {}}}, ", leader.name, leader.civ).as_str());
+        }
+        // Hacky, but it works. Remove the last trailing comma and space.
+        sub_str.pop();
+        sub_str.pop();
+        leader_str.push_str(sub_str.as_str());
+        leader_str.push('\n');
+    }
+
+    let to_say = split_str(&leader_str);
+    for say in to_say {
+        ctx.say(say).await?;
+    }
+    Ok(())
+}
+
+/// List game modes. Useful in conjunction with "!civ_draw_modes"
+#[poise::command(prefix_command)]
+async fn civ_list_modes(ctx: Context<'_>) -> Result<(), Error> {
+    let mut to_say = String::new();
+    for (idx, mode) in GAME_MODES.iter().enumerate() {
+        to_say.push_str(format!("{}: {}\n", idx + 1, mode).as_str());
+    }
+    to_say.pop();
+    ctx.say(to_say).await?;
+    Ok(())
+}
+
+/// Draw random game modes. See also "!civ_list_modes"
+///
+/// Examples:
+///
+///     Draw a random number of modes: "!civ_draw_modes"
+///     Draw 3 random modes: "!civ_draw_modes 3"
+///     Draw a random number of modes, but exclude "Apocalypse" and "Dramatic Ages" modes: "!civ_draw_modes 0 1 3"
+///     Draw 2 modes, exluding "Zombie Defense": "!civ_draw_modes 2 8"
+///
+/// Parameters:
+///
+///     n: Number of modes to draw. Must be set if using "exclude." Set to 0 (or don't set) for a random number of modes.
+///     exclude: Space separated integers for modes to include. Use "!civ_list_modes" to get the mapping of integers to modes.
+#[poise::command(prefix_command)]
+async fn civ_draw_modes(
+    ctx: Context<'_>,
+    n: Option<usize>,
+    exclude: Vec<usize>,
+) -> Result<(), Error> {
+    // Validate n.
+    let n = match n {
+        Some(_n) => {
+            let n_modes = GAME_MODES.len();
+            if _n > n_modes {
+                ctx.say(format!(
+                    "You provided n={}, but n must be <= {}.",
+                    _n, n_modes
+                ))
+                .await?;
+                return Ok(());
+            };
+
+            if _n == 0 { None } else { n }
+        }
+        None => None,
+    };
+
+    // Validate exclude.
+    let exclude = if !exclude.is_empty() {
+        if !exclude.iter().all(|x| (1..=GAME_MODES.len()).contains(x)) {
+            ctx.say(format!(
+                "For \"exclude,\" all values must be between 1 and {}, inclusive. You gave {:?}.",
+                GAME_MODES.len(),
+                exclude
+            ))
+            .await?;
+            return Ok(());
+        }
+        Some(exclude.as_slice())
+    } else {
+        None
+    };
+
+    let modes = draw_modes(n, exclude);
+
+    if modes.is_empty() {
+        ctx.say("RNJesus says there will be no extra game modes (drew 0 when randomly determining the number of modes).").await?;
+        return Ok(());
+    }
+
+    let mut to_say = String::new();
+    for mode in modes {
+        to_say.push_str(format!("{}\n", mode).as_str());
+    }
+    to_say.pop();
+    ctx.say(to_say).await?;
     Ok(())
 }
 
@@ -354,7 +477,16 @@ async fn main() {
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             prefix_options: prefix_framework_options,
-            commands: vec![list(), random(), disconnect(), help(), command],
+            commands: vec![
+                list(),
+                random(),
+                disconnect(),
+                civ_draft(),
+                civ_list_modes(),
+                civ_draw_modes(),
+                help(),
+                command,
+            ],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
