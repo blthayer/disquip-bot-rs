@@ -7,9 +7,9 @@ use std::fs::File;
 #[derive(Debug, Deserialize, Eq, PartialEq)]
 pub struct Leader {
     #[serde(rename = "Leader")]
-    name: String,
+    pub name: String,
     #[serde(rename = "Civilization")]
-    civ: String,
+    pub civ: String,
 }
 
 fn read_leaders() -> Vec<Leader> {

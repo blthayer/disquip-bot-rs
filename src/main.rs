@@ -1,5 +1,5 @@
 mod civ;
-use crate::civ::{Leader, draw_leaders};
+use crate::civ::draw_leaders;
 use poise::serenity_prelude as serenity;
 use rand::Rng;
 use songbird::SerenityInit;
@@ -345,10 +345,21 @@ async fn draft(ctx: Context<'_>, n_players: usize, n_leaders: usize) -> Result<(
     // Draw leaders.
     let leaders = draw_leaders(n_players * n_leaders);
 
-    // Slice.
-    let sliced: Vec<&[Leader]> = leaders.chunks(n_players).collect();
+    let mut leader_str = String::from("```\n");
 
-    let leader_str = format!("```\n{:?}", sliced);
+    for (idx, slice) in leaders.chunks(n_players).enumerate() {
+        leader_str.push_str(format!("Player {}: ", idx + 1).as_str());
+        let mut sub_str = String::new();
+        for leader in slice {
+            sub_str.push_str(format!("{{{}: {}}}, ", leader.name, leader.civ).as_str());
+        }
+        // Hacky, but it works. Remove the last trailing comma and space.
+        sub_str.pop();
+        sub_str.pop();
+        leader_str.push_str(sub_str.as_str());
+        leader_str.push('\n');
+    }
+
     let to_say = split_str(&leader_str);
     for say in to_say {
         ctx.say(say).await?;
