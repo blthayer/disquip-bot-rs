@@ -1,5 +1,5 @@
 mod civ;
-use crate::civ::draw_leaders;
+use crate::civ::{GAME_MODES, draw_leaders, draw_modes};
 use poise::serenity_prelude as serenity;
 use rand::Rng;
 use songbird::SerenityInit;
@@ -290,6 +290,7 @@ async fn disconnect(ctx: Context<'_>) -> Result<(), Error> {
 }
 
 /// Aka "!r" or "!rand." Play a random quip.
+///
 /// E.g., "!r" to play a globally random quip or "!r a1" to play a random
 /// quip from the "a1" category.
 #[poise::command(prefix_command, guild_only = true, aliases("r", "rand"))]
@@ -329,19 +330,13 @@ async fn random(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
     Ok(())
 }
 
-/// Text-only helpers for Civilization VI. Type "!help civ" for more information.
-#[poise::command(prefix_command, subcommands("draft",))]
-async fn civ(ctx: Context<'_>) -> Result<(), Error> {
-    ctx.say("Use one of the subcommands. Type !help civ for more details.")
-        .await?;
-    Ok(())
-}
-
-/// Draw random leaders: "!civ draft n_players n_leaders."
-/// E.g., "!civ draft 4 5" to draw five leaders each for four players.
+/// Draw random leaders: "!civ_draft n_players n_leaders."
+///
+/// Example: "!civ_draft 4 5" to draw five leaders each for four players.
+///
 /// There will be no duplicate leaders or civilizations.
 #[poise::command(prefix_command)]
-async fn draft(ctx: Context<'_>, n_players: usize, n_leaders: usize) -> Result<(), Error> {
+async fn civ_draft(ctx: Context<'_>, n_players: usize, n_leaders: usize) -> Result<(), Error> {
     // Draw leaders.
     let leaders = draw_leaders(n_players * n_leaders);
 
@@ -364,6 +359,87 @@ async fn draft(ctx: Context<'_>, n_players: usize, n_leaders: usize) -> Result<(
     for say in to_say {
         ctx.say(say).await?;
     }
+    Ok(())
+}
+
+/// List game modes. Useful in conjunction with "!civ_draw_modes"
+#[poise::command(prefix_command)]
+async fn civ_list_modes(ctx: Context<'_>) -> Result<(), Error> {
+    let mut to_say = String::new();
+    for (idx, mode) in GAME_MODES.iter().enumerate() {
+        to_say.push_str(format!("{}: {}\n", idx + 1, mode).as_str());
+    }
+    to_say.pop();
+    ctx.say(to_say).await?;
+    Ok(())
+}
+
+/// Draw random game modes. See also "!civ_list_modes"
+///
+/// Examples:
+///
+///     Draw a random number of modes: "!civ_draw_modes"
+///     Draw 3 random modes: "!civ_draw_modes 3"
+///     Draw a random number of modes, but exclude "Apocalypse" and "Dramatic Ages" modes: "!civ_draw_modes 0 1 3"
+///     Draw 2 modes, exluding "Zombie Defense": "!civ_draw_modes 2 8"
+///
+/// Parameters:
+///
+///     n: Number of modes to draw. Must be set if using "exclude." Set to 0 (or don't set) for a random number of modes.
+///     exclude: Space separated integers for modes to include. Use "!civ_list_modes" to get the mapping of integers to modes.
+#[poise::command(prefix_command)]
+async fn civ_draw_modes(
+    ctx: Context<'_>,
+    n: Option<usize>,
+    exclude: Vec<usize>,
+) -> Result<(), Error> {
+    // Validate n.
+    let n = match n {
+        Some(_n) => {
+            let n_modes = GAME_MODES.len();
+            if _n > n_modes {
+                ctx.say(format!(
+                    "You provided n={}, but n must be <= {}.",
+                    _n, n_modes
+                ))
+                .await?;
+                return Ok(());
+            };
+
+            if _n == 0 { None } else { n }
+        }
+        None => None,
+    };
+
+    // Validate exclude.
+    let exclude = if !exclude.is_empty() {
+        if !exclude.iter().all(|x| (1..=GAME_MODES.len()).contains(x)) {
+            ctx.say(format!(
+                "For \"exclude,\" all values must be between 1 and {}, inclusive. You gave {:?}.",
+                GAME_MODES.len(),
+                exclude
+            ))
+            .await?;
+            return Ok(());
+        }
+        Some(exclude.as_slice())
+    } else {
+        None
+    };
+
+    let modes = draw_modes(n, exclude);
+
+    if modes.is_empty() {
+        ctx.say("RNJesus says there will be no extra game modes (drew 0 when randomly determining the number of modes).").await?;
+        return Ok(());
+    }
+
+    let mut to_say = String::new();
+    for mode in modes {
+        to_say.push_str(format!("{}\n", mode).as_str());
+    }
+    to_say.pop();
+    ctx.say(to_say).await?;
     Ok(())
 }
 
@@ -401,7 +477,16 @@ async fn main() {
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             prefix_options: prefix_framework_options,
-            commands: vec![list(), random(), disconnect(), civ(), help(), command],
+            commands: vec![
+                list(),
+                random(),
+                disconnect(),
+                civ_draft(),
+                civ_list_modes(),
+                civ_draw_modes(),
+                help(),
+                command,
+            ],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {

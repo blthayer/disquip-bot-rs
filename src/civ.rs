@@ -5,12 +5,12 @@ use std::collections::HashSet;
 use std::fs::File;
 
 pub const GAME_MODES: [&str; 8] = [
-    "Apocalpyse",
+    "Apocalypse",
     "Barbarian Clans",
     "Dramatic Ages",
     "Heroes & Legends",
     "Monopolies and Corporations",
-    "Secrete Societies",
+    "Secret Societies",
     "Tech and Civic Shuffle",
     "Zombie Defense",
 ];
@@ -138,14 +138,14 @@ mod tests {
 
     #[test]
     fn test_draw_modes_exclude() {
-        assert!(GAME_MODES.contains(&"Apocalpyse"));
+        assert!(GAME_MODES.contains(&"Apocalypse"));
         assert!(GAME_MODES.contains(&"Monopolies and Corporations"));
 
         let exclude: [usize; 2] = [1, 5];
         let mut t: f64 = 0.0;
         for _ in 0..1000 {
             let modes = draw_modes(None, Some(&exclude));
-            assert!(!modes.contains(&"Apocalpyse"));
+            assert!(!modes.contains(&"Apocalypse"));
             assert!(!modes.contains(&"Monopolies and Corporations"));
             t += modes.len() as f64;
         }
