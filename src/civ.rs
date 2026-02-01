@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use std::fs::File;
 
 #[derive(Debug, Deserialize, Eq, PartialEq)]
-struct Leader {
+pub struct Leader {
     #[serde(rename = "Leader")]
     name: String,
     #[serde(rename = "Civilization")]
@@ -26,7 +26,7 @@ fn read_leaders() -> Vec<Leader> {
     leaders
 }
 
-fn draw_leaders(n: usize) -> Vec<Leader> {
+pub fn draw_leaders(n: usize) -> Vec<Leader> {
     // Could take leaders as input, but there's really no reason to...
     let mut all_leaders = read_leaders();
     // Since we're forbidding duplicate leaders and civs we cannot just

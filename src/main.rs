@@ -1,3 +1,5 @@
+mod civ;
+use crate::civ::draw_leaders;
 use poise::serenity_prelude as serenity;
 use rand::Rng;
 use songbird::SerenityInit;
@@ -91,10 +93,7 @@ impl Data {
 
 /// Play a quip!
 #[poise::command(prefix_command, guild_only = true, hide_in_help = true)]
-async fn join_and_play(
-    ctx: Context<'_>,
-    #[description = "Quip number"] num: usize,
-) -> Result<(), Error> {
+async fn join_and_play(ctx: Context<'_>, num: usize) -> Result<(), Error> {
     // Join the voice channel.
     join(&ctx).await?;
 
@@ -192,13 +191,10 @@ async fn play(ctx: &Context<'_>, dir_entry: &DirEntry) -> Result<(), Error> {
 
 /// Show help menu.
 #[poise::command(prefix_command)]
-pub async fn help(
-    ctx: GenericContext<'_>,
-    #[description = "Specific command to show help about"] command: Option<String>,
-) -> Result<(), Error> {
+pub async fn help(ctx: GenericContext<'_>, command: Option<String>) -> Result<(), Error> {
     let config = poise::builtins::HelpConfiguration {
         extra_text_at_bottom: "\
-Type \"!category number\" (e.g., \"aoe1 1\") to play a quip!
+Type \"!category number\" (e.g., \"a1 1\") to play a quip!
 Type \"!list\" to discover available quip categories.
 Type \"!list category\" to get available quip numbers for the given category.
 Type \"!help command\" for more info on a command.",
@@ -208,12 +204,10 @@ Type \"!help command\" for more info on a command.",
     Ok(())
 }
 
-/// List available quip categories or list available quips for a given command.
+/// List quip categories or list quips for a given command.
+/// E.g., "!list" or "!list a1"
 #[poise::command(prefix_command, guild_only = true)]
-async fn list(
-    ctx: Context<'_>,
-    #[description = "Quip category"] cat: Option<String>,
-) -> Result<(), Error> {
+async fn list(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
     let data = ctx.data();
     match cat {
         Some(_cat) => {
@@ -279,12 +273,11 @@ async fn disconnect(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-/// Aliases: "!r" and "!rand." Play a random quip from all available quips or play a random quip from a specified category.
+/// Aka "!r" or "!rand." Play a random quip.
+/// E.g., "!r" to play a globally random quip or "!r a1" to play a random
+/// quip from the "a1" category.
 #[poise::command(prefix_command, guild_only = true, aliases("r", "rand"))]
-async fn random(
-    ctx: Context<'_>,
-    #[description = "Quip category"] cat: Option<String>,
-) -> Result<(), Error> {
+async fn random(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
     // Join the voice channel.
     join(&ctx).await?;
 
@@ -317,6 +310,24 @@ async fn random(
     ))
     .await?;
     play(&ctx, chosen_file).await?;
+    Ok(())
+}
+
+/// Text-only helpers for Civilization VI. Type "!help civ" for more information.
+#[poise::command(prefix_command, subcommands("draft",))]
+async fn civ(ctx: Context<'_>) -> Result<(), Error> {
+    ctx.say("Use one of the subcommands. Type !help civ for more details.")
+        .await?;
+    Ok(())
+}
+
+/// Draw random leaders: "!civ draft n_players n_leaders."
+/// E.g., "!civ draft 4 5" to draw five leaders each for four players.
+/// There will be no duplicate leaders or civilizations.
+#[poise::command(prefix_command)]
+async fn draft(ctx: Context<'_>, n_players: usize, n_leaders: usize) -> Result<(), Error> {
+    let _leaders = draw_leaders(n_players * n_leaders);
+    ctx.say("WIP.").await?;
     Ok(())
 }
 
@@ -354,7 +365,7 @@ async fn main() {
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             prefix_options: prefix_framework_options,
-            commands: vec![list(), random(), disconnect(), help(), command],
+            commands: vec![list(), random(), disconnect(), civ(), help(), command],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
