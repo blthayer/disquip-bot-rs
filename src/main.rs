@@ -1,5 +1,5 @@
 mod civ;
-use crate::civ::{GAME_MODES, draw_leaders, draw_modes};
+use crate::civ::{GAME_MODES, draw_leaders, draw_map, draw_modes};
 use poise::serenity_prelude as serenity;
 use rand::Rng;
 use songbird::SerenityInit;
@@ -442,6 +442,14 @@ async fn civ_draw_modes(
     Ok(())
 }
 
+/// Draw a single random map.
+#[poise::command(prefix_command)]
+async fn civ_draw_map(ctx: Context<'_>) -> Result<(), Error> {
+    let map = draw_map();
+    ctx.say(map).await?;
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
     let args: Vec<String> = env::args().collect();
@@ -483,6 +491,7 @@ async fn main() {
                 civ_draft(),
                 civ_list_modes(),
                 civ_draw_modes(),
+                civ_draw_map(),
                 help(),
                 command,
             ],

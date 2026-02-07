@@ -15,6 +15,39 @@ pub const GAME_MODES: [&str; 8] = [
     "Zombie Defense",
 ];
 
+pub const MAPS: [&str; 30] = [
+    "4-Leaf Clover",
+    "6-Armed Snowflake",
+    "Archipelago",
+    "Continents",
+    "Continents and Islands",
+    "Earth",
+    "Earth Huge",
+    "East Asia",
+    "Europe",
+    "Fractal",
+    "Highlands",
+    "Inland Sea",
+    "Island Plates",
+    "Lakes",
+    "Mediterranean Large",
+    "Mirror",
+    "Pangaea",
+    "Primordial",
+    "Seven Seas",
+    "Shuffle",
+    "Small Continents",
+    "Splintered Fractal",
+    "Terra",
+    "Tilted Axis",
+    "True Start Location Earth",
+    "True Start Location Earth Huge",
+    "True Start Locaion East Asia",
+    "True Start Location Europe",
+    "True Start Location Mediterranean",
+    "Wetlands",
+];
+
 #[derive(Debug, Deserialize, Eq, PartialEq)]
 pub struct Leader {
     #[serde(rename = "Leader")]
@@ -99,6 +132,12 @@ pub fn draw_modes(n: Option<usize>, exclude: Option<&[usize]>) -> Vec<&'static s
     modes[0..n].to_vec()
 }
 
+pub fn draw_map() -> &'static str {
+    let mut rng = rand::rng();
+    let idx = rng.random_range(0..MAPS.len());
+    MAPS[idx]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -178,5 +217,16 @@ mod tests {
                 assert!(!modes.contains(&"Zombie Defense"));
             }
         }
+    }
+
+    #[test]
+    fn test_draw_map() {
+        let mut set: HashSet<&str> = HashSet::with_capacity(MAPS.len());
+
+        for _ in 0..10000 {
+            set.insert(draw_map());
+        }
+
+        assert_eq!(set.len(), MAPS.len());
     }
 }
