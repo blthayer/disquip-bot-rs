@@ -1,11 +1,13 @@
 # disquip-bot-rs
 
-DisQuip Bot: Discord bot that plays audio clips from files into voice channels on command.
-The bot also features commands for randomizing aspects of Civilization VI game setup.
+DisQuip Bot: Discord bot that plays audio clips from local files into voice channels
+on command. Also includes commands for randomizing aspects of Civilization VI game
+setup.
 
 This is a re-implementation of the now defunct
 [disquip-bot](https://github.com/blthayer/disquip-bot), originally written in
-Python but died due to Discord updating their API in a backwards-incompatible way.
+Python. Unfortunately the original DisQuip but died an early death due to Discord
+updating their API in a backwards-incompatible way.
 
 ## Quick Start
 
@@ -16,6 +18,15 @@ Python but died due to Discord updating their API in a backwards-incompatible wa
 1. Create subdirectories in the `audio` directory and populate them with `mp3` or
    `wav` files.
 1. Compile and run: `./run.sh`
+
+## Disclaimer
+
+This software should be considered a beta. While everything seems to work just
+fine and the bot is stable (no obvious memory leaks and no crahses after weeks of
+continuous runtime), testing is quite minimal, error handling is minimal/incomplete,
+and logging is missing. Use at your own risk!
+
+If you encounter any issues, please do file an issue or submit a pull request.
 
 ## Usage
 
