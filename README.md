@@ -15,16 +15,18 @@ updating their API in a backwards-incompatible way.
    `git clone https://github.com/blthayer/disquip-bot-rs.git; cd disquip-bot-rs`.
 1. Place the contents of your Discord bot's API token into a file called `token`
    in this directory.
-1. Create subdirectories in the `audio` directory and populate them with `mp3` or
-   `wav` files.
+1. Create subdirectories in the `audio` directory and populate them with `mp3`
+   and/or `wav` files.
 1. Compile and run: `./run.sh`
 
 ## Disclaimer
 
 This software should be considered a beta. While everything seems to work just
-fine and the bot is stable (no obvious memory leaks and no crahses after weeks of
-continuous runtime), testing is quite minimal, error handling is minimal/incomplete,
-and logging is missing. Use at your own risk!
+fine and the bot is stable in my environment (no obvious memory leaks and no crashes
+after weeks of continuous runtime), testing is quite minimal, error handling is
+minimal/incomplete, logging is missing, and not all edge cases are covered.
+Use at your own risk! No warranty is implied or provided for this freely available
+software.
 
 If you encounter any issues, please do file an issue or submit a pull request.
 
@@ -34,11 +36,12 @@ TL;DR: Type `!help` into a text channel and go from there!
 
 This section covers interacting with the bot/app through Discord, and assumes the
 app is properly configured and the program is running. See [Quick Start](#quick-start)
-or [Setup, Install, and Run](#setup-install-and-run) sections of this document.
+or [Setup, Install, and Run](#setup-install-and-run) sections of this document for
+more information on getting the bot running.
 
-All commands for the bot are prefixed with `!` and go into a text channel the bot
-is able to read and respond in. In order to play audio files, you must be in a
-voice channel.
+All commands for the bot are prefixed with `!` and are entered into a text channel
+that the bot is able to read and respond to messages in. In order to play audio
+files, you must be in a voice channel.
 
 This guide will not cover all commands in detail, as the `!help` contents should
 stand on its own.
@@ -81,7 +84,7 @@ cat   (optional)
 
 #### list
 
-The `!list` command list available quip categories (which can then be used as
+The `!list` command lists available quip categories (which can then be used as
 commands), which are defined by the installed [audio files](#audio-files).
 Example (truncated) output:
 
@@ -124,16 +127,17 @@ TL;DR example: `!a3 2`
 See [list](#list) first.
 
 You must be in a voice channel for this to work. Simply type `!<category> <number>`
-into the text channel you use for bot interactions, where `<category>` is maps to
-a directory of audio files, and the number is the counting number associated with
-the file. See [Audio Files](#audio-files) for more information.
+into the text channel you use for bot interactions, where `<category>` maps to a
+directory of audio files, and the number is the counting number associated with the
+file. See [Audio Files](#audio-files) for more information.
 
 #### random
 
 TL;DR: `!r`
 
-Plays a globally random quip, or a random quip from a specified category. This
-is a lot of fun and great for... discovering... quips available to the bot.
+Plays a globally random quip, or a random quip from a specified category
+(`!r <category>`). This is a lot of fun and great for... discovering... quips
+available to the bot.
 
 ## Setup, Install, and Run
 
@@ -157,8 +161,8 @@ additional directions required.
 ### Discord App Configuration
 
 This assumes a [Discord App](https://docs.discord.com/developers/quick-start/overview-of-apps)
-has already been created through Discord. This procedure is outside the scope of
-this document.
+has already been created through Discord, the procedure for which is outside the
+scope of this document.
 
 The following directions describe how to obtain an API token and how to configure
 gateway intents.
@@ -176,8 +180,10 @@ directions outside the scope of this document).
 
 ### Audio Files
 
-DisQuipt Bot is a "bring your own audio files" project - for legal and copyright
-reasons, no audio files will be distributed with the bot.
+DisQuip Bot is a "bring your own audio files" project - for legal and copyright
+reasons, no audio files are distributed with the bot or this repository. Don't
+let that discourage you - there are plenty of audio files
+[available on the internet](https://aoe.heavengames.com/dl-php/showfile.php?fileid=1740).
 
 1. Create subdirectories in the repository's top-level `audio` directory.
 1. Populate the subdirectories with audio files (`.mp3` or `.wav`).
@@ -199,7 +205,7 @@ Tips:
   that last more than a few seconds.
 - For additional audio file format support, add to the `features` list of
   the [symphonia](https://docs.rs/crate/symphonia/latest) dependency in
-  `Cargo.toml`.
+  `Cargo.toml` and then run `cargo update symphonia`.
 
 ### Run
 
