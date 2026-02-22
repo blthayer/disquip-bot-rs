@@ -24,9 +24,9 @@ updating their API in a backwards-incompatible way.
 This software should be considered a beta. While everything seems to work just
 fine and the bot is stable in my environment (no obvious memory leaks and no crashes
 after weeks of continuous runtime), testing is quite minimal, error handling is
-minimal/incomplete, logging is missing, and not all edge cases are covered.
-Use at your own risk! No warranty is implied or provided for this freely available
-software.
+minimal/incomplete, logging is missing, not all edge cases are covered, and security
+has not been assessed. Use at your own risk! No warranty is implied or provided for
+this freely available software.
 
 If you encounter any issues, please do file an issue or submit a pull request.
 
