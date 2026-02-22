@@ -12,7 +12,7 @@ updating their API in a backwards-incompatible way.
 ## Quick Start
 
 1. Clone the repository and navigate to it:
-   `https://github.com/blthayer/disquip-bot-rs.git; cd disquip-bot-rs`.
+   `git clone https://github.com/blthayer/disquip-bot-rs.git; cd disquip-bot-rs`.
 1. Place the contents of your Discord bot's API token into a file called `token`.
    in this directory.
 1. Create subdirectories in the `audio` directory and populate them with `mp3` or
