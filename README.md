@@ -2,7 +2,7 @@
 
 DisQuip Bot: Discord bot that plays audio clips from local files into voice channels
 on command. Also includes commands for randomizing aspects of Civilization VI game
-setup.
+setup. Implemented in Rust.
 
 This is a re-implementation of the now defunct
 [disquip-bot](https://github.com/blthayer/disquip-bot), originally written in
