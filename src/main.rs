@@ -194,10 +194,10 @@ async fn play(ctx: &Context<'_>, dir_entry: &DirEntry) -> Result<(), Error> {
 pub async fn help(ctx: GenericContext<'_>, command: Option<String>) -> Result<(), Error> {
     let config = poise::builtins::HelpConfiguration {
         extra_text_at_bottom: "\
-Type \"!category number\" (e.g., \"a1 1\") to play a quip!
+Type \"!<category> <number>\" (e.g., \"a1 1\") to play a quip!
 Type \"!list\" to discover available quip categories.
-Type \"!list category\" to get available quip numbers for the given category.
-Type \"!help command\" for more info on a command.",
+Type \"!list <category>\" to get available quip numbers for the given category.
+Type \"!help <command>\" for more info on a command.",
         ..Default::default()
     };
     poise::builtins::help(ctx, command.as_deref(), config).await?;
