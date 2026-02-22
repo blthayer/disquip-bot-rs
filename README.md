@@ -206,6 +206,9 @@ Tips:
 - For additional audio file format support, add to the `features` list of
   the [symphonia](https://docs.rs/crate/symphonia/latest) dependency in
   `Cargo.toml` and then run `cargo update symphonia`.
+- After collecting all your audio files, consider normalizing them so the
+  volume range is similar. The previous Python version of the bot leveraged
+  [ffmpeg-normalize](https://github.com/slhck/ffmpeg-normalize) for this purpose.
 
 ### Run
 
