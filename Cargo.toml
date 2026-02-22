@@ -2,6 +2,12 @@
 name = "disquip-bot-rs"
 version = "0.4.1"
 edition = "2024"
+description = "A Discord bot to play audio files (quips) on command"
+readme = "README.md"
+repository = "https://github.com/blthayer/disquip-bot-rs"
+license = "MIT"
+keywords = ["discord", "audio", "bot", "soundboard", "civ"]
+categories = ["games", "multimedia::audio"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
