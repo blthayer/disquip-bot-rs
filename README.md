@@ -12,7 +12,7 @@ own audio files, and run this program on your own PC, server, Raspberry Pi, etc.
 
 This is a re-implementation of the now defunct
 [disquip-bot](https://github.com/blthayer/disquip-bot), originally written in
-Python. Unfortunately the original DisQuip but died an early death due to Discord
+Python. Unfortunately the original DisQuip bot died an early death due to Discord
 updating their API in a backwards-incompatible way.
 
 ## Quick Start
