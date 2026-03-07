@@ -1,4 +1,4 @@
-use rapidfuzz::distance::damerau_levenshtein::BatchComparator;
+use rapidfuzz::{HashableChar, distance::damerau_levenshtein::BatchComparator};
 
 use poise::serenity_prelude as serenity;
 use rand::Rng;
@@ -91,35 +91,38 @@ impl Data {
         Err(format!("The provided category {:?} is invalid. Use \"!list\" with no arguments to get valid categories.", cat).into())
     }
 
-    // fn fuzzy(
-    //     &self,
-    //     search: String,
-    //     capacity: usize,
-    //     category: Option<String>,
-    // ) -> Result<&Vec<DirEntry>, Error> {
-    //     let mut best_scores: Vec<(String, u32)> = Vec::with_capacity(capacity);
-    //     // Note: using .bytes assumes ASCII input.
-    //     let scorer = BatchComparator::new(search.bytes());
+    fn fuzzy(
+        &self,
+        search: String,
+        capacity: usize,
+        category: Option<String>,
+    ) -> Result<&Vec<DirEntry>, Error> {
+        let mut best_scores: Vec<(String, u32)> = Vec::with_capacity(capacity);
+        // Note: using .bytes assumes ASCII input.
+        let scorer = BatchComparator::new(search.bytes());
 
-    //     let iter;
-    //     if let Some(cat) = category {
-    //         let vec = self.file_map.get(&cat);
+        let iter;
+        if let Some(cat) = category {
+            let vec = self.file_map.get(&cat);
 
-    //         if let Some(cat_vec) = vec {
-    //             iter = [(cat, *cat_vec)].iter();
-    //         } else {
-    //             return Err(format!("The provided category {:?} is invalid. Use \"!list\" with no arguments to get valid categories.", cat).into());
-    //         }
-    //     } else {
-    //         iter = self.file_map.iter();
-    //     }
+            if let Some(cat_vec) = vec {
+                // Clearly a hacky approach...
+                let _map = HashMap::new();
+                _map.insert(cat, cat_vec);
+                iter = _map.iter();
+            } else {
+                return Err(format!("The provided category {:?} is invalid. Use \"!list\" with no arguments to get valid categories.", cat).into());
+            }
+        } else {
+            iter = self.file_map.iter();
+        }
 
-    //     // for (cat, vec) in self.file_map.iter() {
-    //     //     for dir_entry in vec {
-    //     //         let score
-    //     //     }
-    //     // }
-    // }
+        for (cat, vec) in self.file_map.iter() {
+            for dir_entry in vec {
+                let score
+            }
+        }
+    }
 }
 
 // use rapidfuzz::distance::damerau_levenshtein::BatchComparator;
@@ -171,47 +174,17 @@ impl Data {
 //     max_idx
 // }
 
-fn score(
+fn score<Elem1: HashableChar + Clone + Copy>(
     category: &String,
     dir_vec: &[DirEntry],
-    scorer: &BatchComparator<&[u8]>,
+    scorer: &BatchComparator<Elem1>,
     best_scores: &mut [(String, DirEntry, u32)],
-) -> &[(String, DirEntry, u32)] {
+) -> () {
     let mut max_idx: usize = 0;
     for (idx, dir_entry) in dir_vec.iter().enumerate() {
         // Compute score.
-        let score = scorer.distance(
-            format!(
-                "{}/{}",
-                category,
-                dir_entry.file_name().into_string().unwrap()
-            )
-            .bytes(),
-        ) as u32;
-        println!("{}:{}", word, score);
-
-        // Simply push the (word, score) pair in if the vector is not at capacity:
-        if idx < capacity {
-            best_scores.push((word.to_string(), score));
-            continue;
-        }
-
-        // Once we've hit capacity, compute the max index.
-        if idx == capacity {
-            max_idx = get_max_idx(&best_scores);
-        }
-
-        // Update best_scores if this score is better, then recompute
-        // the max_idx.
-        if score < best_scores[max_idx].1 {
-            best_scores[max_idx] = (word.to_string(), score);
-
-            max_idx = get_max_idx(&best_scores);
-        }
+        let score = scorer.distance(dir_entry.file_name().into_string().unwrap().bytes());
     }
-
-    best_scores.sort_by_key(|k| k.1);
-    best_scores
 }
 
 /// Play a quip!
