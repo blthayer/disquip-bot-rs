@@ -18,3 +18,7 @@ poise = { version = "0.6" }
 songbird = { version = "0.5", features = ["builtin-queue"] }
 symphonia = { version = "0.5", features = ["mp3"] }
 tokio = { version = "1.21", features = ["macros", "rt-multi-thread"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
