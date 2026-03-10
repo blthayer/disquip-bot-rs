@@ -453,11 +453,16 @@ async fn civ_draw_map(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-/// Roll the dice! Aka "!d." Usage: "!dice <n dice> <n sides>"
+/// Roll the dice! Aka "!d." Usage: "!dice <n sides> <n dice>" - n dice defaults to 1
 ///
-/// E.g.: `!d 2 6` to roll two six-sided dice.
+/// Examples:
+///   - `!d 6 2` to roll two six-sided dice.
+///   - `!d 20` to roll a single twenty-sided die.
+///   - `!d 2` to emulate a coin flip (1 -> heads, 2 -> tails).
 #[poise::command(prefix_command, aliases("d"))]
-async fn dice(ctx: Context<'_>, n_dice: usize, n_sides: u32) -> Result<(), Error> {
+async fn dice(ctx: Context<'_>, n_sides: u32, n_dice: Option<usize>) -> Result<(), Error> {
+    let n_dice = n_dice.unwrap_or(1);
+
     // Prevent someone from entering a stupidly large number. Hopefully whatever parsing
     // is done behind the scenes will handle bad input for n_sides, e.g. bigger than the
     // max u32.
