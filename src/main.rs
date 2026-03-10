@@ -1,7 +1,10 @@
 mod civ;
 use crate::civ::{GAME_MODES, draw_leaders, draw_map, draw_modes};
 use poise::serenity_prelude as serenity;
-use rand::Rng;
+use rand::{
+    Rng,
+    distr::{Distribution, Uniform},
+};
 use songbird::SerenityInit;
 use std::{
     collections::HashMap,
@@ -291,7 +294,7 @@ async fn disconnect(ctx: Context<'_>) -> Result<(), Error> {
 
 /// Aka "!r" or "!rand." Play a random quip.
 ///
-/// E.g., "!r" to play a globally random quip or "!r a1" to play a random
+/// E.g., `!r` to play a globally random quip or `!r a1` to play a random
 /// quip from the "a1" category.
 #[poise::command(prefix_command, guild_only = true, aliases("r", "rand"))]
 async fn random(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
@@ -332,7 +335,7 @@ async fn random(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
 
 /// Draw random leaders: "!civ_draft n_players n_leaders."
 ///
-/// Example: "!civ_draft 4 5" to draw five leaders each for four players.
+/// Example: `!civ_draft 4 5` to draw five leaders each for four players.
 ///
 /// There will be no duplicate leaders or civilizations.
 #[poise::command(prefix_command)]
@@ -377,15 +380,15 @@ async fn civ_list_modes(ctx: Context<'_>) -> Result<(), Error> {
 ///
 /// Examples:
 ///
-///     Draw a random number of modes: "!civ_draw_modes"
-///     Draw 3 random modes: "!civ_draw_modes 3"
-///     Draw a random number of modes, but exclude "Apocalypse" and "Dramatic Ages" modes: "!civ_draw_modes 0 1 3"
-///     Draw 2 modes, exluding "Zombie Defense": "!civ_draw_modes 2 8"
+///     Draw a random number of modes: `!civ_draw_modes`
+///     Draw 3 random modes: `!civ_draw_modes 3`
+///     Draw a random number of modes, but exclude "Apocalypse" and "Dramatic Ages" modes: `!civ_draw_modes 0 1 3`
+///     Draw 2 modes, exluding "Zombie Defense": `!civ_draw_modes 2 8`
 ///
 /// Parameters:
 ///
 ///     n: Number of modes to draw. Must be set if using "exclude." Set to 0 (or don't set) for a random number of modes.
-///     exclude: Space separated integers for modes to include. Use "!civ_list_modes" to get the mapping of integers to modes.
+///     exclude: Space separated integers for modes to include. Use `!civ_list_modes` to get the mapping of integers to modes.
 #[poise::command(prefix_command)]
 async fn civ_draw_modes(
     ctx: Context<'_>,
@@ -450,6 +453,47 @@ async fn civ_draw_map(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+/// Roll the dice! Aka "!d." Usage: "!dice <n dice> <n sides>"
+///
+/// E.g.: `!d 2 6` to roll two six-sided dice.
+#[poise::command(prefix_command, aliases("d"))]
+async fn dice(ctx: Context<'_>, n_dice: usize, n_sides: u32) -> Result<(), Error> {
+    // Prevent someone from entering a stupidly large number. Hopefully whatever parsing
+    // is done behind the scenes will handle bad input for n_sides, e.g. bigger than the
+    // max u32.
+    if n_dice > 100 {
+        ctx.say("n_dice must be less than or equal to 100.").await?;
+        return Ok(());
+    }
+
+    // Minimum would be a coin flip, aka two sides.
+    if n_sides < 2 {
+        ctx.say("n_sides must be greater than or equal to 2.")
+            .await?;
+        return Ok(());
+    }
+
+    // Get to work.
+    let mut results: Vec<u32> = Vec::with_capacity(n_dice);
+    // Scope this so the ThreadRng is dropped before the await point.
+    {
+        let mut rng = rand::rng();
+        // It's okay to unwrap this since we've validated input.
+        let uniform = Uniform::new_inclusive(1, n_sides).unwrap();
+
+        for _ in 0..n_dice {
+            results.push(uniform.sample(&mut rng));
+        }
+    }
+    let to_say = results
+        .iter()
+        .map(|val| format!("{}", val))
+        .collect::<Vec<String>>()
+        .join(", ");
+    ctx.say(to_say).await?;
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
     let args: Vec<String> = env::args().collect();
@@ -488,6 +532,7 @@ async fn main() {
                 list(),
                 random(),
                 disconnect(),
+                dice(),
                 civ_draft(),
                 civ_list_modes(),
                 civ_draw_modes(),
