@@ -1,6 +1,6 @@
 [package]
 name = "disquip-bot-rs"
-version = "0.4.1"
+version = "0.6.0"
 edition = "2024"
 description = "A Discord bot to play audio files (quips) on command"
 readme = "README.md"
@@ -18,3 +18,7 @@ poise = { version = "0.6" }
 songbird = { git = "https://github.com/beerpsi-forks/songbird.git", branch = "davey", features = ["builtin-queue"] }
 symphonia = { version = "0.5", features = ["mp3"] }
 tokio = { version = "1.21", features = ["macros", "rt-multi-thread"] }
+
+[profile.release]
+lto = true
+codegen-units = 1
