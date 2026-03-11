@@ -3,4 +3,4 @@
 set -euo pipefail
 DISCORD_TOKEN="$(<token)"
 export DISCORD_TOKEN
-cargo run --release
+cargo run
