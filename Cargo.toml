@@ -15,7 +15,7 @@ csv = "1.4"
 rand = "0.9"
 serenity = {version = "0.12", features = ["client", "standard_framework", "voice"] }
 poise = { version = "0.6" }
-songbird = { version = "0.5", features = ["builtin-queue"] }
+songbird = { git = "https://github.com/beerpsi-forks/songbird.git", branch = "davey", features = ["builtin-queue"] }
 symphonia = { version = "0.5", features = ["mp3"] }
 tokio = { version = "1.21", features = ["macros", "rt-multi-thread"] }
 
