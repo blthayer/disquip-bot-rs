@@ -1,5 +1,5 @@
 mod civ;
-use crate::civ::{GAME_MODES, draw_leaders, draw_map, draw_modes};
+use crate::civ::{GAME_MODES, draw_leaders, draw_map, draw_modes, draw_settings};
 use poise::serenity_prelude as serenity;
 use rand::{
     Rng,
@@ -453,6 +453,13 @@ async fn civ_draw_map(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+/// Draw random game settings to jump-start Civilization VI game setup.
+#[poise::command(prefix_command)]
+async fn civ_draw_settings(ctx: Context<'_>) -> Result<(), Error> {
+    ctx.say(draw_settings()).await?;
+    Ok(())
+}
+
 /// Roll the dice! Aka "!d." Usage: "!dice <n sides> <n dice>" - n dice defaults to 1
 ///
 /// Examples:
@@ -542,6 +549,7 @@ async fn main() {
                 civ_list_modes(),
                 civ_draw_modes(),
                 civ_draw_map(),
+                civ_draw_settings(),
                 help(),
                 command,
             ],

@@ -1,4 +1,5 @@
 use rand::Rng;
+use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
 use serde::Deserialize;
 use std::collections::HashSet;
@@ -47,6 +48,54 @@ pub const MAPS: [&str; 30] = [
     "True Start Location Mediterranean",
     "Wetlands",
 ];
+
+pub const CITY_STATE_RANGE: std::ops::RangeInclusive<usize> = 0..=14;
+pub const DISASTER_INTENSITY_RANGE: std::ops::RangeInclusive<usize> = 0..=4;
+pub const RESOURCES: [&str; 4] = ["Sparse", "Standard", "Abundant", "Random"];
+pub const WORLD_AGE: [&str; 4] = ["New", "Standard", "Old", "Random"];
+pub const START_POSITION: [&str; 3] = ["Balanced", "Standard", "Legendary"];
+pub const TEMPERATURE: [&str; 4] = ["Hot", "Standard", "Cold", "Random"];
+pub const RAINFALL: [&str; 4] = ["Arid", "Standard", "Wet", "Random"];
+pub const SEA_LEVEL: [&str; 4] = ["Low", "Standard", "High", "Random"];
+
+pub fn draw_from_slice<'a, T>(rng: &mut ThreadRng, array: &'a [T]) -> &'a T {
+    // TODO: How to avoid returning a double-reference?
+    &array[rng.random_range(0..array.len())]
+}
+
+pub fn draw_settings() -> String {
+    let mut rng = rand::rng();
+
+    let n_city_states = rng.random_range(CITY_STATE_RANGE);
+    let disaster_intensity = rng.random_range(DISASTER_INTENSITY_RANGE);
+    let map = *draw_from_slice(&mut rng, &MAPS);
+    let resources = *draw_from_slice(&mut rng, &RESOURCES);
+    let world_age = *draw_from_slice(&mut rng, &WORLD_AGE);
+    let start_position = *draw_from_slice(&mut rng, &START_POSITION);
+    let temperature = *draw_from_slice(&mut rng, &TEMPERATURE);
+    let rainfall = *draw_from_slice(&mut rng, &RAINFALL);
+    let sea_level = *draw_from_slice(&mut rng, &SEA_LEVEL);
+
+    format!(
+        "
+```
+City-States:            {n_city_states}
+Disaster Intensity:     {disaster_intensity}
+Map:                    {map}
+Leader Pool 1:          N/A
+Leader Pool 2:          N/A
+Resources:              {resources}
+Select City-States:     N/A
+Select Natural Wonders: N/A
+World Age:              {world_age}
+Start Position:         {start_position}
+Temperature:            {temperature}
+Rainfall:               {rainfall}
+Sea Level:              {sea_level}
+```
+        "
+    )
+}
 
 #[derive(Debug, Deserialize, Eq, PartialEq)]
 pub struct Leader {
