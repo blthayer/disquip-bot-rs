@@ -1,6 +1,6 @@
 [package]
 name = "disquip-bot-rs"
-version = "0.7.0"
+version = "0.7.1"
 edition = "2024"
 description = "A Discord bot to play audio files (quips) on command"
 readme = "README.md"
@@ -11,13 +11,13 @@ categories = ["games", "multimedia::audio"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
-csv = "1.4"
+csv = "1"
 rand = "0.9"
 serenity = {version = "0.12", features = ["client", "standard_framework", "voice"] }
 poise = { version = "0.6" }
-songbird = { version = "0.5", features = ["builtin-queue"] }
+songbird = { version = "0.6", features = ["builtin-queue"] }
 symphonia = { version = "0.5", features = ["mp3"] }
-tokio = { version = "1.21", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 [profile.release]
 lto = true

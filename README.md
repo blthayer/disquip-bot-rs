@@ -15,16 +15,6 @@ This is a re-implementation of the now defunct
 Python. Unfortunately the original DisQuip bot died an early death due to Discord
 updating their API in a backwards-incompatible way.
 
-## Current Status
-
-The `main` branch is currently not functional when it comes to joining voice channels
-and playing audio. This is due to the underlying `songbird` crate not yet supporting
-end-to-end encryption via the DAVE protocol. Discord started enforcing the use
-of the DAVE protocol in early March 2026. However, you can find a branch with working
-audio that uses an *unofficial* fork of `songbird` (the
-[songbird PR](https://github.com/serenity-rs/songbird/pull/291) is not yet complete
-or reviewed) in the following *draft* PR: https://github.com/blthayer/disquip-bot-rs/pull/21
-
 ## Quick Start
 
 1. Clone the repository and navigate to it:
