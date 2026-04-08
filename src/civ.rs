@@ -43,7 +43,7 @@ pub const MAPS: [&str; 30] = [
     "Tilted Axis",
     "True Start Location Earth",
     "True Start Location Earth Huge",
-    "True Start Locaion East Asia",
+    "True Start Location East Asia",
     "True Start Location Europe",
     "True Start Location Mediterranean",
     "Wetlands",
