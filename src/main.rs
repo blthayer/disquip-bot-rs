@@ -42,13 +42,13 @@ impl Data {
                 let key = u.file_name().into_string().unwrap();
                 let files = read_dir(u.path()).unwrap();
                 for f in files {
-                    let _f = f.unwrap();
-                    match file_map.entry(key.to_owned()) {
+                    let dir_entry = f.unwrap();
+                    match file_map.entry(key.clone()) {
                         std::collections::hash_map::Entry::Occupied(mut oe) => {
-                            oe.get_mut().push(_f);
+                            oe.get_mut().push(dir_entry);
                         }
                         std::collections::hash_map::Entry::Vacant(ve) => {
-                            ve.insert(vec![_f]);
+                            ve.insert(vec![dir_entry]);
                         }
                     }
                     map_len += 1;
@@ -58,39 +58,39 @@ impl Data {
 
         // Sort.
         for val in file_map.values_mut() {
-            val.sort_by_key(|a| a.path());
+            val.sort_by_key(std::fs::DirEntry::path);
         }
         Data { file_map, map_len }
     }
 
-    /// Get a DirEntry from the given index. The index is effectively an
-    /// index into the imaginary vector of all DirEntries in the FileMap
+    /// Get a `DirEntry` from the given index. The index is effectively an
+    /// index into the imaginary vector of all `DirEntries` in the `FileMap`
     /// concatenated together. Also returns the chosen category and index within.
     fn get_from_global_index(&self, idx: usize) -> Result<(&DirEntry, String, usize), Error> {
         let mut visited: usize = 0;
 
-        for (cat, vec) in self.file_map.iter() {
-            let _idx = idx - visited;
-            let _len = vec.len();
-            if (idx - visited) < _len {
-                return Ok((&vec[_idx], cat.to_owned(), _idx));
-            };
+        for (cat, vec) in &self.file_map {
+            let this_idx = idx - visited;
+            let len = vec.len();
+            if (idx - visited) < len {
+                return Ok((&vec[this_idx], cat.to_owned(), this_idx));
+            }
 
-            visited += _len;
+            visited += len;
         }
         Err(format!("The provided idx ({}) to get_from_global_index is too large. Index must be between 0 and {}.", idx, self.map_len).into())
     }
 
-    /// Get a vector from the file_map from the given key ("cat" for "category").
+    /// Get a vector from the `file_map` from the given key ("cat" for "category").
     /// If the key is not present, return an error which eventually gets floated up
     /// to the user.
     fn get_vec(&self, cat: &String) -> Result<&Vec<DirEntry>, Error> {
         if let Some(cat_vec) = self.file_map.get(cat) {
             return Ok(cat_vec);
-        };
+        }
 
         // TODO: How does "into" work?
-        Err(format!("The provided category {:?} is invalid. Use \"!list\" with no arguments to get valid categories.", cat).into())
+        Err(format!("The provided category {cat:?} is invalid. Use \"!list\" with no arguments to get valid categories.").into())
     }
 }
 
@@ -104,13 +104,14 @@ async fn join_and_play(ctx: Context<'_>, num: usize) -> Result<(), Error> {
     let command = ctx.invoked_command_name().to_string();
     let file_vec = ctx.data().get_vec(&command)?;
     let attempt_chosen_file = file_vec.get(num - 1);
-    let chosen_file = match attempt_chosen_file {
-        Some(chosen_file) => chosen_file,
-        None => {
-            ctx.say(format!("The given integer \"{:?}\" is invalid. Valid integers for the {:?} command range from 1 to {:?}", num, command, file_vec.len()))
-            .await?;
-            return Ok(());
-        }
+    let Some(chosen_file) = attempt_chosen_file else {
+        ctx.say(
+            format!(
+                "The given integer \"{:?}\" is invalid. Valid integers for the {:?} command range from 1 to {:?}",
+                num, command, file_vec.len()
+            )
+        ).await?;
+        return Ok(());
     };
     play(&ctx, chosen_file).await?;
     Ok(())
@@ -145,7 +146,7 @@ async fn join(ctx: &Context<'_>) -> Result<(), Error> {
         {
             return Ok(());
         }
-    };
+    }
 
     // It seems to be fine if there are multiple join calls, probably no need
     // to add our own conditional here.
@@ -212,40 +213,37 @@ Type \"!help <command>\" for more info on a command.",
 #[poise::command(prefix_command, guild_only = true)]
 async fn list(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
     let data = ctx.data();
-    match cat {
-        Some(_cat) => {
-            let cat_vec = data.get_vec(&_cat)?;
-            let mut help_str = format!("Available quips for category \"{}\":\n```\n", _cat);
-            for (idx, item) in cat_vec.iter().enumerate() {
-                help_str.push_str(
-                    format!(
-                        "{}: {:?}\n",
-                        idx as u32 + 1,
-                        item.file_name().into_string().unwrap()
-                    )
-                    .as_str(),
-                );
-            }
-            if help_str.len() < 1996 {
-                help_str.push_str("\n```");
-                ctx.say(help_str).await?;
-            } else {
-                let to_say = split_str(&help_str);
-                for say in to_say {
-                    ctx.say(say).await?;
-                }
-            }
+    if let Some(cat_str) = cat {
+        let cat_vec = data.get_vec(&cat_str)?;
+        let mut help_str = format!("Available quips for category \"{cat_str}\":\n```\n");
+        for (idx, item) in cat_vec.iter().enumerate() {
+            help_str.push_str(
+                format!(
+                    "{}: {:?}\n",
+                    u32::try_from(idx)? + 1,
+                    item.file_name().into_string().unwrap()
+                )
+                .as_str(),
+            );
         }
-        None => {
-            let mut key_vec: Vec<String> = data.file_map.keys().cloned().collect();
-            key_vec.sort();
-            let mut help_str = String::from("Quip categories:\n");
-            for key in key_vec {
-                help_str.push_str(format!("**{}**\n", key).as_str());
-            }
+        if help_str.len() < 1996 {
+            help_str.push_str("\n```");
             ctx.say(help_str).await?;
+        } else {
+            let to_say = split_str(&help_str);
+            for say in to_say {
+                ctx.say(say).await?;
+            }
         }
-    };
+    } else {
+        let mut key_vec: Vec<String> = data.file_map.keys().cloned().collect();
+        key_vec.sort();
+        let mut help_str = String::from("Quip categories:\n");
+        for key in key_vec {
+            help_str.push_str(format!("**{key}**\n").as_str());
+        }
+        ctx.say(help_str).await?;
+    }
     Ok(())
 }
 
@@ -311,11 +309,11 @@ async fn random(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
         // be cheap to get it, and it's probably not worth fighting through
         // the thread safety stuff to put the rng on the Data struct as a field.
         let mut rng = rand::rng();
-        if let Some(_cat) = cat {
-            let file_vec = data.get_vec(&_cat)?;
+        if let Some(cat_str) = cat {
+            let file_vec = data.get_vec(&cat_str)?;
             idx = rng.random_range(0..file_vec.len());
             chosen_file = &file_vec[idx];
-            chosen_category = _cat;
+            chosen_category = cat_str;
         } else {
             (chosen_file, chosen_category, idx) =
                 data.get_from_global_index(rng.random_range(0..data.map_len))?;
@@ -325,7 +323,7 @@ async fn random(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
         "Playing quip \"{} {}\" ({})",
         chosen_category,
         // Convert to 1-based indexing.
-        idx as u32 + 1,
+        u32::try_from(idx + 1)?,
         chosen_file.file_name().into_string().unwrap()
     ))
     .await?;
@@ -333,7 +331,7 @@ async fn random(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
     Ok(())
 }
 
-/// Draw random leaders: "!civ_draft n_players n_leaders."
+/// Draw random leaders: "!`civ_draft` `n_players` `n_leaders`."
 ///
 /// Example: `!civ_draft 4 5` to draw five leaders each for four players.
 ///
@@ -364,7 +362,7 @@ async fn civ_draft(ctx: Context<'_>, n_players: usize, n_leaders: usize) -> Resu
     Ok(())
 }
 
-/// List game modes. Useful in conjunction with "!civ_draw_modes"
+/// List game modes. Useful in conjunction with "!`civ_draw_modes`"
 #[poise::command(prefix_command)]
 async fn civ_list_modes(ctx: Context<'_>) -> Result<(), Error> {
     let mut to_say = String::new();
@@ -376,7 +374,7 @@ async fn civ_list_modes(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-/// Draw random game modes. See also "!civ_list_modes"
+/// Draw random game modes. See also "!`civ_list_modes`"
 ///
 /// Examples:
 ///
@@ -397,24 +395,25 @@ async fn civ_draw_modes(
 ) -> Result<(), Error> {
     // Validate n.
     let n = match n {
-        Some(_n) => {
+        Some(n_usize) => {
             let n_modes = GAME_MODES.len();
-            if _n > n_modes {
+            if n_usize > n_modes {
                 ctx.say(format!(
-                    "You provided n={}, but n must be <= {}.",
-                    _n, n_modes
+                    "You provided n={n_usize}, but n must be <= {n_modes}."
                 ))
                 .await?;
                 return Ok(());
-            };
+            }
 
-            if _n == 0 { None } else { n }
+            if n_usize == 0 { None } else { n }
         }
         None => None,
     };
 
     // Validate exclude.
-    let exclude = if !exclude.is_empty() {
+    let exclude = if exclude.is_empty() {
+        None
+    } else {
         if !exclude.iter().all(|x| (1..=GAME_MODES.len()).contains(x)) {
             ctx.say(format!(
                 "For \"exclude,\" all values must be between 1 and {}, inclusive. You gave {:?}.",
@@ -425,8 +424,6 @@ async fn civ_draw_modes(
             return Ok(());
         }
         Some(exclude.as_slice())
-    } else {
-        None
     };
 
     let modes = draw_modes(n, exclude);
@@ -438,7 +435,7 @@ async fn civ_draw_modes(
 
     let mut to_say = String::new();
     for mode in modes {
-        to_say.push_str(format!("{}\n", mode).as_str());
+        to_say.push_str(format!("{mode}\n").as_str());
     }
     to_say.pop();
     ctx.say(to_say).await?;
@@ -499,7 +496,7 @@ async fn dice(ctx: Context<'_>, n_sides: u32, n_dice: Option<usize>) -> Result<(
     }
     let to_say = results
         .iter()
-        .map(|val| format!("{}", val))
+        .map(|val| format!("{val}"))
         .collect::<Vec<String>>()
         .join(", ");
     ctx.say(to_say).await?;
@@ -510,12 +507,12 @@ async fn dice(ctx: Context<'_>, n_sides: u32, n_dice: Option<usize>) -> Result<(
 async fn main() {
     let args: Vec<String> = env::args().collect();
 
-    let top_dir = if args.len() < 2 {
-        String::from("audio")
-    } else if args.len() == 2 {
-        args[1].to_string()
-    } else {
-        panic!("Provide a single argument, the path to the directory containing audio files.")
+    let top_dir = match args.len().cmp(&2) {
+        std::cmp::Ordering::Less => String::from("audio"),
+        std::cmp::Ordering::Equal => args[1].clone(),
+        std::cmp::Ordering::Greater => {
+            panic!("Provide a single argument, the path to the directory containing audio files.")
+        }
     };
 
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
