@@ -331,7 +331,8 @@ async fn random(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
     Ok(())
 }
 
-/// Draw random leaders: "!`civ_draft` `n_players` `n_leaders`."
+#[allow(clippy::doc_markdown)]
+/// Draw random leaders: "!civ_draft n_players n_leaders."
 ///
 /// Example: `!civ_draft 4 5` to draw five leaders each for four players.
 ///
@@ -362,7 +363,8 @@ async fn civ_draft(ctx: Context<'_>, n_players: usize, n_leaders: usize) -> Resu
     Ok(())
 }
 
-/// List game modes. Useful in conjunction with "!`civ_draw_modes`"
+#[allow(clippy::doc_markdown)]
+/// List game modes. Useful in conjunction with "!civ_draw_modes"
 #[poise::command(prefix_command)]
 async fn civ_list_modes(ctx: Context<'_>) -> Result<(), Error> {
     let mut to_say = String::new();
@@ -374,7 +376,8 @@ async fn civ_list_modes(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-/// Draw random game modes. See also "!`civ_list_modes`"
+#[allow(clippy::doc_markdown)]
+/// Draw random game modes. See also "!civ_list_modes"
 ///
 /// Examples:
 ///
