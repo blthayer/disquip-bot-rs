@@ -22,3 +22,16 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 [profile.release]
 lto = true
 codegen-units = 1
+
+[lints.clippy]
+# correctness, suspicious, style, complexity, perf
+all = { level = "deny", priority = -1 }
+# pedantic = { level = "deny", priority = -1 }
+
+# Allowances:
+# doc_broken_link = "allow"
+# doc_comment_double_space_linebreaks = "allow"
+# doc_link_with_quotes = "allow"
+# doc_markdown = "allow"
+# missing_errors_doc = "allow"
+# missing_panics_doc = "allow"
