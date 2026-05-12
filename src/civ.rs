@@ -151,7 +151,7 @@ pub fn draw_leaders(n: usize) -> Vec<Leader> {
 
 /// If n is provided, draw that many modes.
 /// If exclude is provided, treat as 1-based indices into
-/// GAME_MODES.
+/// `GAME_MODES`.
 pub fn draw_modes(n: Option<usize>, exclude: Option<&[usize]>) -> Vec<&'static str> {
     let mut rng = rand::rng();
 
