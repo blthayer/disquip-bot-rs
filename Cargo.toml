@@ -15,7 +15,9 @@ rand = "0.10"
 serenity = {version = "0.12", features = ["client", "standard_framework", "voice"] }
 poise = { version = "0.6" }
 songbird = { version = "0.6", features = ["builtin-queue"] }
-symphonia = { version = "0.6", features = ["mp3"] }
+# Tried 0.6 on 2026-05-16, no luck. Songbird is probably not yet compatible.
+# https://github.com/pdeljanov/Symphonia/blob/main/docs/guides/migration/0p6.md
+symphonia = { version = "0.5", features = ["mp3"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ahash = { version = "0.8" }
 
