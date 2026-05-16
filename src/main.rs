@@ -226,8 +226,8 @@ async fn list(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
                 .as_str(),
             );
         }
-        if help_str.len() < 1996 {
-            help_str.push_str("\n```");
+        if help_str.len() < 1997 {
+            help_str.push_str("```");
             ctx.say(help_str).await?;
         } else {
             let to_say = split_str(&help_str);
@@ -260,17 +260,17 @@ fn split_str(to_split: &str) -> Vec<String> {
     for (idx, chunk) in to_split
         .chars()
         .collect::<Vec<_>>()
-        .chunks(1992)
+        .chunks(1994)
         .enumerate()
     {
         let mut to_push = if idx == 0 {
             String::new()
         } else {
-            String::from("```\n")
+            String::from("```")
         };
         let chunk_str: String = chunk.iter().collect();
         to_push.push_str(chunk_str.as_str());
-        to_push.push_str("\n```");
+        to_push.push_str("```");
         out.push(to_push);
     }
     out
@@ -320,7 +320,7 @@ async fn random(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
         }
     };
     ctx.say(format!(
-        "Playing quip \"{} {}\" ({})",
+        "```Playing quip \"{} {}\" ({})```",
         chosen_category,
         // Convert to 1-based indexing.
         u32::try_from(idx + 1)?,
@@ -358,6 +358,7 @@ async fn civ_draft(ctx: Context<'_>, n_players: usize, n_leaders: usize) -> Resu
 
     let to_say = split_str(&leader_str);
     for say in to_say {
+        // tickified handled outside of this loop
         ctx.say(say).await?;
     }
     Ok(())
@@ -441,7 +442,7 @@ async fn civ_draw_modes(
         to_say.push_str(format!("{mode}\n").as_str());
     }
     to_say.pop();
-    ctx.say(to_say).await?;
+    ctx.say(tickify(&to_say)).await?;
     Ok(())
 }
 
@@ -449,13 +450,14 @@ async fn civ_draw_modes(
 #[poise::command(prefix_command)]
 async fn civ_draw_map(ctx: Context<'_>) -> Result<(), Error> {
     let map = draw_map();
-    ctx.say(map).await?;
+    ctx.say(tickify(map)).await?;
     Ok(())
 }
 
 /// Draw random game settings to jump-start Civilization VI game setup.
 #[poise::command(prefix_command)]
 async fn civ_draw_settings(ctx: Context<'_>) -> Result<(), Error> {
+    // Already tickified
     ctx.say(draw_settings()).await?;
     Ok(())
 }
@@ -502,10 +504,13 @@ async fn dice(ctx: Context<'_>, n_sides: u32, n_dice: Option<usize>) -> Result<(
         .map(|val| format!("{val}"))
         .collect::<Vec<String>>()
         .join(", ");
-    ctx.say(to_say).await?;
+    ctx.say(tickify(&to_say)).await?;
     Ok(())
 }
 
+fn tickify(text: &str) -> String {
+    format!("```{text}```")
+}
 // Exits the process.
 fn usage() -> ! {
     println!(
