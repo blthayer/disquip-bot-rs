@@ -587,16 +587,23 @@ async fn main() {
     keys.sort();
     command.aliases = data.file_map.keys().cloned().collect();
 
-    let mut commands = vec![list(), random(), disconnect(), dice(), help(), command];
+    #[cfg(not(feature = "civ"))]
+    let commands = vec![list(), random(), disconnect(), dice(), help(), command];
 
     #[cfg(feature = "civ")]
-    commands.extend(vec![
+    let commands = vec![
+        list(),
+        random(),
+        disconnect(),
+        dice(),
+        help(),
         civ_draft(),
         civ_list_modes(),
         civ_draw_modes(),
         civ_draw_map(),
         civ_draw_settings(),
-    ]);
+        command,
+    ];
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
