@@ -506,20 +506,58 @@ async fn dice(ctx: Context<'_>, n_sides: u32, n_dice: Option<usize>) -> Result<(
     Ok(())
 }
 
-#[tokio::main]
-async fn main() {
-    let args: Vec<String> = env::args().collect();
+// Exits the process.
+fn usage() -> ! {
+    println!(
+        "
+Usage: disquip-bot-rs [-h | --help] /path/to/audio/files
+
+E.g.: \"disquip-bot-rs audio\" for an audio file tree in the local directory \"audio\"
+
+*** The \"DISCORD_TOKEN\" environment variable must be set. ***
+
+For security, it's recommended to avoid leaking tokens to shell history. This can be
+achieved by modifying your shell history settings, or storing the token in a properly
+permissioned file (e.g., 600) and using a helper script to launch the program. You
+can find an example at https://github.com/blthayer/disquip-bot-rs/blob/main/run.sh.
+"
+    );
+    std::process::exit(1);
+}
+
+fn parse_args() -> (String, String) {
+    let mut args: Vec<String> = env::args().collect();
+
+    if args.iter().any(|e| {
+        let trimmed = e.trim();
+        trimmed == "--help" || trimmed == "-h"
+    }) {
+        usage();
+    }
 
     let top_dir = match args.len().cmp(&2) {
-        std::cmp::Ordering::Less => String::from("audio"),
-        std::cmp::Ordering::Equal => args[1].clone(),
+        std::cmp::Ordering::Less => {
+            println!("Received zero arguments.");
+            usage();
+        }
+        std::cmp::Ordering::Equal => std::mem::take(&mut args[1]),
         std::cmp::Ordering::Greater => {
-            panic!("Provide a single argument, the path to the directory containing audio files.")
+            println!("Received {} arguments.\n", args.len() - 1);
+            usage();
         }
     };
 
-    let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
+    let Ok(token) = std::env::var("DISCORD_TOKEN") else {
+        println!("The \"DISCORD_TOKEN\" environment variable was not set.");
+        usage();
+    };
 
+    (top_dir, token)
+}
+
+#[tokio::main]
+async fn main() {
+    let (top_dir, token) = parse_args();
     let data = Data::new(top_dir);
 
     let intents = serenity::GatewayIntents::non_privileged()
