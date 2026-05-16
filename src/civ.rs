@@ -1,8 +1,8 @@
+use ahash::AHashSet;
 use rand::RngExt;
 use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
 use serde::Deserialize;
-use std::collections::HashSet;
 use std::fs::File;
 
 pub const GAME_MODES: [&str; 8] = [
@@ -126,8 +126,8 @@ pub fn draw_leaders(n: usize) -> Vec<Leader> {
     // draw n_players * n_leaders
     all_leaders.shuffle(&mut rand::rng());
     let mut out: Vec<Leader> = Vec::with_capacity(n);
-    let mut civs: HashSet<String> = HashSet::new();
-    let mut names: HashSet<String> = HashSet::new();
+    let mut civs: AHashSet<String> = AHashSet::new();
+    let mut names: AHashSet<String> = AHashSet::new();
 
     // A while loop feels more natural, but Rust's ownership
     // model essentially forces a for loop here.
@@ -270,7 +270,7 @@ mod tests {
 
     #[test]
     fn test_draw_map() {
-        let mut set: HashSet<&str> = HashSet::with_capacity(MAPS.len());
+        let mut set: AHashSet<&str> = AHashSet::with_capacity(MAPS.len());
 
         for _ in 0..10000 {
             set.insert(draw_map());

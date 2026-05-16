@@ -1,5 +1,6 @@
 mod civ;
 use crate::civ::{GAME_MODES, draw_leaders, draw_map, draw_modes, draw_settings};
+use ahash::AHashMap;
 use poise::serenity_prelude as serenity;
 use rand::{
     RngExt,
@@ -7,13 +8,12 @@ use rand::{
 };
 use songbird::SerenityInit;
 use std::{
-    collections::HashMap,
     env,
     fs::{DirEntry, read_dir},
 };
 // Event related imports to detect track creation failures.
 use songbird::events::{Event, EventContext, EventHandler as VoiceEventHandler, TrackEvent};
-type FileMap = HashMap<String, Vec<DirEntry>>;
+type FileMap = AHashMap<String, Vec<DirEntry>>;
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::PrefixContext<'a, Data, Error>;
@@ -28,16 +28,16 @@ struct Data {
 impl Data {
     fn new(top_dir: String) -> Data {
         // Initialize the file map and a counter for the total number of DirEntries.
-        let mut file_map: HashMap<String, Vec<DirEntry>> = HashMap::new();
+        let mut file_map: AHashMap<String, Vec<DirEntry>> = AHashMap::new();
         let mut map_len: usize = 0;
 
-        // Loop over directories within the top_dir and fill out the HashMap.
+        // Loop over directories within the top_dir and fill out the AHashMap.
         let result = read_dir(top_dir).unwrap();
         for r in result {
             let u = r.unwrap();
             // Only work with directories.
             if u.file_type().unwrap().is_dir() {
-                // Iterate over the files and place in the HashMap using the
+                // Iterate over the files and place in the AHashMap using the
                 // directory's name as a key.
                 let key = u.file_name().into_string().unwrap();
                 let files = read_dir(u.path()).unwrap();
