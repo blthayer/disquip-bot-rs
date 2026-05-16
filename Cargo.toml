@@ -18,6 +18,10 @@ symphonia = { version = "0.6", features = ["mp3"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 ahash = { version = "0.8" }
 
+[features]
+default = ["civ"]
+civ = []
+
 [profile.release]
 lto = "fat"
 codegen-units = 1
