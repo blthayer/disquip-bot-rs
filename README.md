@@ -228,3 +228,20 @@ For your convenience, simply run `./run.sh`.
 - `cmake`: `sudo apt update; sudo apt install cmake` (version `3.22.1` tested)
 - (Optional): [just](https://just.systems/man/en/installation.html): `cargo install --locked just`
 - (Optional): [just-lsp](https://github.com/terror/just-lsp): `cargo install --locked just-lsp`
+
+If you choose not to install and use `just`, you can manually copy + run recipes from
+the `justfile`, which will be referenced throughout.
+
+### Cross-compiling (`aarch64-unknown-linux-gnu`)
+
+
+```console
+# One time installs:
+sudo apt update
+sudo apt install -y gcc-aarch64-linux-gnu
+rustup target add aarch64-unknown-linux-gnu
+
+# Build:
+just build-rpi4b
+# or just build-jetson
+```

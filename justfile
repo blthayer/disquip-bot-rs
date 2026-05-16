@@ -9,5 +9,20 @@ fix:
     cargo fmt --all
     cargo clippy --all-features --fix --allow-dirty
 
+build:
+    RUSTFLAGS="-C target-cpu=native" cargo build --all-features --release
+
+# For a generic aarch64 target, just remove the target-cpu.
+# Tested on a Raspberry Pi Model 4B running TODO.
+# For other RPi models, verify cpu with lscpu.
+# TODO: Not working yet.
+build-rpi4b:
+    RUSTFLAGS="-C target-cpu=cortex-a72 -C target-feature=+crt-static,+neon" cargo build --all-features --release --target=aarch64-unknown-linux-gnu
+
+# NVIDIA Jetson. I believe all Jetsons have the same CPU, but verify
+# via lscpu prior to building. Tested on Orin Nano.
+build-jetson:
+    RUSTFLAGS="-C target-cpu=cortex-a78ae -C target-feature=+crt-static,+neon" cargo build --all-features --release --target=aarch64-unknown-linux-gnu
+
 # Everything you should do before opening a pull request.
 pr: fix lint test
