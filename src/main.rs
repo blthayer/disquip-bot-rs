@@ -226,8 +226,8 @@ async fn list(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
                 .as_str(),
             );
         }
-        if help_str.len() < 1996 {
-            help_str.push_str("\n```");
+        if help_str.len() < 1997 {
+            help_str.push_str("```");
             ctx.say(help_str).await?;
         } else {
             let to_say = split_str(&help_str);
@@ -260,17 +260,17 @@ fn split_str(to_split: &str) -> Vec<String> {
     for (idx, chunk) in to_split
         .chars()
         .collect::<Vec<_>>()
-        .chunks(1992)
+        .chunks(1994)
         .enumerate()
     {
         let mut to_push = if idx == 0 {
             String::new()
         } else {
-            String::from("```\n")
+            String::from("```")
         };
         let chunk_str: String = chunk.iter().collect();
         to_push.push_str(chunk_str.as_str());
-        to_push.push_str("\n```");
+        to_push.push_str("```");
         out.push(to_push);
     }
     out
@@ -320,7 +320,7 @@ async fn random(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
         }
     };
     ctx.say(format!(
-        "Playing quip \"{} {}\" ({})",
+        "```Playing quip \"{} {}\" ({})```",
         chosen_category,
         // Convert to 1-based indexing.
         u32::try_from(idx + 1)?,
@@ -358,6 +358,7 @@ async fn civ_draft(ctx: Context<'_>, n_players: usize, n_leaders: usize) -> Resu
 
     let to_say = split_str(&leader_str);
     for say in to_say {
+        // tickified handled outside of this loop
         ctx.say(say).await?;
     }
     Ok(())
@@ -441,7 +442,7 @@ async fn civ_draw_modes(
         to_say.push_str(format!("{mode}\n").as_str());
     }
     to_say.pop();
-    ctx.say(to_say).await?;
+    ctx.say(tickify(&to_say)).await?;
     Ok(())
 }
 
@@ -449,13 +450,14 @@ async fn civ_draw_modes(
 #[poise::command(prefix_command)]
 async fn civ_draw_map(ctx: Context<'_>) -> Result<(), Error> {
     let map = draw_map();
-    ctx.say(map).await?;
+    ctx.say(tickify(map)).await?;
     Ok(())
 }
 
 /// Draw random game settings to jump-start Civilization VI game setup.
 #[poise::command(prefix_command)]
 async fn civ_draw_settings(ctx: Context<'_>) -> Result<(), Error> {
+    // Already tickified
     ctx.say(draw_settings()).await?;
     Ok(())
 }
@@ -502,24 +504,65 @@ async fn dice(ctx: Context<'_>, n_sides: u32, n_dice: Option<usize>) -> Result<(
         .map(|val| format!("{val}"))
         .collect::<Vec<String>>()
         .join(", ");
-    ctx.say(to_say).await?;
+    ctx.say(tickify(&to_say)).await?;
     Ok(())
+}
+
+fn tickify(text: &str) -> String {
+    format!("```{text}```")
+}
+// Exits the process.
+fn usage() -> ! {
+    println!(
+        "
+Usage: disquip-bot-rs [-h | --help] /path/to/audio/files
+
+E.g.: \"disquip-bot-rs audio\" for an audio file tree in the local directory \"audio\"
+
+*** The \"DISCORD_TOKEN\" environment variable must be set. ***
+
+For security, it's recommended to avoid leaking tokens to shell history. This can be
+achieved by modifying your shell history settings, or storing the token in a properly
+permissioned file (e.g., 600) and using a helper script to launch the program. You
+can find an example at https://github.com/blthayer/disquip-bot-rs/blob/main/run.sh.
+"
+    );
+    std::process::exit(1);
+}
+
+fn parse_args() -> (String, String) {
+    let mut args: Vec<String> = env::args().collect();
+
+    if args.iter().any(|e| {
+        let trimmed = e.trim();
+        trimmed == "--help" || trimmed == "-h"
+    }) {
+        usage();
+    }
+
+    let top_dir = match args.len().cmp(&2) {
+        std::cmp::Ordering::Less => {
+            println!("Received zero arguments.");
+            usage();
+        }
+        std::cmp::Ordering::Equal => std::mem::take(&mut args[1]),
+        std::cmp::Ordering::Greater => {
+            println!("Received {} arguments.\n", args.len() - 1);
+            usage();
+        }
+    };
+
+    let Ok(token) = std::env::var("DISCORD_TOKEN") else {
+        println!("The \"DISCORD_TOKEN\" environment variable was not set.");
+        usage();
+    };
+
+    (top_dir, token)
 }
 
 #[tokio::main]
 async fn main() {
-    let args: Vec<String> = env::args().collect();
-
-    let top_dir = match args.len().cmp(&2) {
-        std::cmp::Ordering::Less => String::from("audio"),
-        std::cmp::Ordering::Equal => args[1].clone(),
-        std::cmp::Ordering::Greater => {
-            panic!("Provide a single argument, the path to the directory containing audio files.")
-        }
-    };
-
-    let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
-
+    let (top_dir, token) = parse_args();
     let data = Data::new(top_dir);
 
     let intents = serenity::GatewayIntents::non_privileged()
