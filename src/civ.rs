@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::RngExt;
 use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
 use serde::Deserialize;
@@ -213,12 +213,12 @@ mod tests {
     /// Basic test with no args.
     fn test_draw_modes() {
         let mut t: f64 = 0.0;
-        for _ in 0..1000 {
+        for _ in 0..10000 {
             let modes = draw_modes(None, None);
             t += modes.len() as f64;
         }
         // Average length should be pretty close over 1000 trials.
-        let avg = t / 1000.0;
+        let avg = t / 10000.0;
         // Not gonna do the math here, but this should succeed the vast
         // majority of runs. Yes, I've written a flaky test...
         assert!((avg - 3.5).abs() < 0.1);
@@ -231,14 +231,14 @@ mod tests {
 
         let exclude: [usize; 2] = [1, 5];
         let mut t: f64 = 0.0;
-        for _ in 0..1000 {
+        for _ in 0..10000 {
             let modes = draw_modes(None, Some(&exclude));
             assert!(!modes.contains(&"Apocalypse"));
             assert!(!modes.contains(&"Monopolies and Corporations"));
             t += modes.len() as f64;
         }
         // Average length should be pretty close over 1000 trials.
-        let avg = t / 1000.0;
+        let avg = t / 10000.0;
         // Not gonna do the math here, but this should succeed the vast
         // majority of runs. Yes, I've written a flaky test...
         assert!((avg - 2.5).abs() < 0.1);

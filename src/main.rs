@@ -2,7 +2,7 @@ mod civ;
 use crate::civ::{GAME_MODES, draw_leaders, draw_map, draw_modes, draw_settings};
 use poise::serenity_prelude as serenity;
 use rand::{
-    Rng,
+    RngExt,
     distr::{Distribution, Uniform},
 };
 use songbird::SerenityInit;
