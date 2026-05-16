@@ -1,4 +1,6 @@
+#[cfg(feature = "civ")]
 mod civ;
+#[cfg(feature = "civ")]
 use crate::civ::{GAME_MODES, draw_leaders, draw_map, draw_modes, draw_settings};
 use ahash::AHashMap;
 use poise::serenity_prelude as serenity;
@@ -331,6 +333,7 @@ async fn random(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(feature = "civ")]
 #[allow(clippy::doc_markdown)]
 /// Draw random leaders: "!civ_draft n_players n_leaders."
 ///
@@ -364,6 +367,7 @@ async fn civ_draft(ctx: Context<'_>, n_players: usize, n_leaders: usize) -> Resu
     Ok(())
 }
 
+#[cfg(feature = "civ")]
 #[allow(clippy::doc_markdown)]
 /// List game modes. Useful in conjunction with "!civ_draw_modes"
 #[poise::command(prefix_command)]
@@ -377,6 +381,7 @@ async fn civ_list_modes(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(feature = "civ")]
 #[allow(clippy::doc_markdown)]
 /// Draw random game modes. See also "!civ_list_modes"
 ///
@@ -446,6 +451,7 @@ async fn civ_draw_modes(
     Ok(())
 }
 
+#[cfg(feature = "civ")]
 /// Draw a single random map.
 #[poise::command(prefix_command)]
 async fn civ_draw_map(ctx: Context<'_>) -> Result<(), Error> {
@@ -454,6 +460,7 @@ async fn civ_draw_map(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+#[cfg(feature = "civ")]
 /// Draw random game settings to jump-start Civilization VI game setup.
 #[poise::command(prefix_command)]
 async fn civ_draw_settings(ctx: Context<'_>) -> Result<(), Error> {
@@ -580,22 +587,28 @@ async fn main() {
     keys.sort();
     command.aliases = data.file_map.keys().cloned().collect();
 
+    #[cfg(not(feature = "civ"))]
+    let commands = vec![list(), random(), disconnect(), dice(), help(), command];
+
+    #[cfg(feature = "civ")]
+    let commands = vec![
+        list(),
+        random(),
+        disconnect(),
+        dice(),
+        help(),
+        civ_draft(),
+        civ_list_modes(),
+        civ_draw_modes(),
+        civ_draw_map(),
+        civ_draw_settings(),
+        command,
+    ];
+
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             prefix_options: prefix_framework_options,
-            commands: vec![
-                list(),
-                random(),
-                disconnect(),
-                dice(),
-                civ_draft(),
-                civ_list_modes(),
-                civ_draw_modes(),
-                civ_draw_map(),
-                civ_draw_settings(),
-                help(),
-                command,
-            ],
+            commands,
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {

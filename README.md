@@ -225,5 +225,6 @@ For your convenience, simply run `./run.sh`.
 ### Prerequisites
 
 - [Rust toolchain](https://rustup.rs/)
+- `cmake`: `sudo apt update; sudo apt install cmake` (version `3.22.1` tested)
 - (Optional): [just](https://just.systems/man/en/installation.html): `cargo install --locked just`
 - (Optional): [just-lsp](https://github.com/terror/just-lsp): `cargo install --locked just-lsp`

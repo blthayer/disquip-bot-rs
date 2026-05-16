@@ -4,4 +4,4 @@
 set -euo pipefail
 DISCORD_TOKEN="$(<token)"
 export DISCORD_TOKEN
-cargo run --release -- "${1:-audio}"
+cargo run --release --all-features -- "${1:-audio}"

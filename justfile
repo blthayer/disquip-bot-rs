@@ -3,6 +3,7 @@ lint:
 
 test:
     cargo test --all-features --no-fail-fast
+    cargo test --no-default-features
 
 fix:
     cargo fmt --all

@@ -2,7 +2,6 @@ use ahash::AHashSet;
 use rand::RngExt;
 use rand::rngs::ThreadRng;
 use rand::seq::SliceRandom;
-use serde::Deserialize;
 
 pub const GAME_MODES: [&str; 8] = [
     "Apocalypse",
@@ -176,11 +175,9 @@ Sea Level:              {sea_level}
     )
 }
 
-#[derive(Debug, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Leader {
-    #[serde(rename = "Leader")]
     pub name: String,
-    #[serde(rename = "Civilization")]
     pub civ: String,
 }
 
