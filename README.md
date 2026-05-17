@@ -240,6 +240,8 @@ to the file containing your Discord token. Example:
 
 ### Pre-built Binaries
 
+TODO/WIP: pre-built binaries on GitHub not yet available.
+
 A limited set of pre-built binaries are provided for each
 [release](https://github.com/blthayer/disquip-bot-rs/releases).
 
@@ -259,7 +261,9 @@ TODO
 
 If you'd like to install `disquip-bot` with `apt` and run as a daemon (service)
 managed by `systemd` with automatic program (re)start, follow the directions here.
+This is especially useful if you have an always-on server like a Raspberry Pi.
 
+TODO/WIP: pre-built debs on GitHub not yet available.
 A limited set of pre-built `.deb` packages are provided for each
 [release](https://github.com/blthayer/disquip-bot-rs/releases). Download the `.deb`
 approporate for your target machine.
@@ -359,9 +363,9 @@ sudo apt remove --purge disquip-bot
 sudo rm -r /etc/disquip-bot/token
 ```
 
-Additionally, consider deleting the audio files/directory.
+Additionally, consider deleting the audio files/directory at `/usr/share/disquip-bot`
 
-#### Unpgrading
+#### Upgrading
 
 Simply install a newer `.deb` via `apt`.
 
