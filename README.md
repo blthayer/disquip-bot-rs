@@ -4,16 +4,21 @@ DisQuip Bot: Discord bot that plays audio clips from local files into voice chan
 on command.
 
 In essence, this is a customizable soundboard. Commands for randomizing aspects of
-Civilization VI game setup are also included (assumes you have all the DLC). This
-program is implemented in Rust.
-
-**This is a self-hosted bot** - *you* perform Discord configuration, collect your
-own audio files, and run this program on your own PC, server, Raspberry Pi, etc.
+Civilization VI game setup are optionally included (assumes you have all the DLC).
 
 This is a re-implementation of the now defunct
 [disquip-bot](https://github.com/blthayer/disquip-bot), originally written in
 Python. Unfortunately the original DisQuip bot died an early death due to Discord
 updating their API in a backwards-incompatible way.
+
+## Disclaimers
+
+**This is a self-hosted bot** - *you* perform Discord configuration, collect your
+own audio files, and run this program on your own PC, server, Raspberry Pi, etc.
+
+**This is (working) beta software** - while this program works swimmingly for my
+personal use and I'd love it if you gave it a try as well, it is not guaranteed
+to work everywhere, be 100% secure, be 100% stable, or be 100% "productionized."
 
 ## Quick Start
 
@@ -23,7 +28,7 @@ updating their API in a backwards-incompatible way.
    in this directory.
 1. Create subdirectories in the `audio` directory and populate them with `mp3`
    and/or `wav` files.
-1. Compile and run: `./run.sh`
+1. Compile and run locally: `./run.sh`
 
 ## Disclaimer
 
@@ -36,14 +41,15 @@ this freely available software.
 
 If you encounter any issues, please do file an issue or submit a pull request.
 
-## Usage
+## Usage Within Discord
 
-TL;DR: Type `!help` into a text channel and go from there!
+TL;DR: Type `!help` into a Discord server's text channel that the bot is authorized
+to read from and write to, and go from there!
 
 This section covers interacting with the bot/app through Discord, and assumes the
 app is properly configured and the program is running. See [Quick Start](#quick-start)
 or [Setup, Install, and Run](#setup-install-and-run) sections of this document for
-more information on getting the bot running.
+more information on getting the bot running (launching the program).
 
 All commands for the bot are prefixed with `!` and are entered into a text channel
 that the bot is able to read and respond to messages in. In order to play audio
@@ -61,14 +67,16 @@ the following:
 
 ```
 Commands:
-  !list             List quip categories or list quips for a given command. E.g., "!list" or "!list a1"
-  !random           Aka "!r" or "!rand." Play a random quip.
-  !disconnect       Disconnect the bot from its current voice channel.
-  !civ_draft        Draw random leaders: "!civ_draft n_players n_leaders."
-  !civ_list_modes   List game modes. Useful in conjunction with "!civ_draw_modes"
-  !civ_draw_modes   Draw random game modes. See also "!civ_list_modes"
-  !civ_draw_map     Draw a single random map.
-  !help             Show help menu.
+  !list                List quip categories or list quips for a given command. E.g., "!list" or "!list a1"
+  !random              Aka "!r" or "!rand." Play a random quip.
+  !disconnect          Disconnect the bot from its current voice channel.
+  !dice                Roll the dice! Aka "!d." Usage: "!dice <n sides> <n dice>" - n dice defaults to 1
+  !help                Show help menu.
+  !civ_draft           Draw random leaders: "!civ_draft n_players n_leaders."
+  !civ_list_modes      List game modes. Useful in conjunction with "!civ_draw_modes"
+  !civ_draw_modes      Draw random game modes. See also "!civ_list_modes"
+  !civ_draw_map        Draw a single random map.
+  !civ_draw_settings   Draw random game settings to jump-start Civilization VI game setup.
 
 Type "!<category> <number>" (e.g., "a1 1") to play a quip!
 Type "!list" to discover available quip categories.
@@ -108,7 +116,7 @@ sw
 ```
 
 For inspiration, my personal setup here includes the taunts from the Age of Empires
-games in the a1-a3 categories, clips from the Halo games in `halo`, Lord of the Rings
+games in the `a1`-`a3` categories, clips from the Halo games in `halo`, Lord of the Rings
 movie audio clips in `lotr`, miscellaneous quips in `misc`, and of course clips from
 Star Wars in `sw`.
 
@@ -128,7 +136,7 @@ To play the taunt that says "No," you would then type `!a3 2` into the text chan
 
 #### Playing a quip
 
-TL;DR example: `!a3 2`
+TL;DR: `!a3 2`
 
 See [list](#list) first.
 
@@ -150,19 +158,12 @@ available to the bot.
 This program is known to work on the following Linux systems:
 
 - Pop!_OS 22.04 LTS, x86_64 architecture
-- Debian 11 (bullseye), aarch64 architecture (Raspberry Pi 4 Model B Rev 1.5)
+- TODO, WIP: Raspberry Pi OS (Debian 13, a.k.a. "Trixie"), aarch64 architecture (Raspberry Pi 4 Model B Rev 1.5)
+- JetPack 6 (aka Ubuntu 22), aarch64 architecture (NVIDIA Jetson, Orin Nano)
 
 It very likely functions on other operating systems, but has not been tested on
 any besides those listed here. Please submit a PR to add your setup and any
 additional directions required.
-
-### Prerequisites
-
-- [Rust toolchain](https://rustup.rs/). Tested with `rustc` versions `1.92.0`
-  and `1.93.1`.
-- `cmake`: Simply `sudo apt update; sudo apt install cmake` on a Debian-based
-  Linux system (*e.g.*, Debian, Ubuntu, Pop!_OS, Mint, *etc.*). Tested with
-  version `3.22.1`.
 
 ### Discord App Configuration
 
@@ -216,9 +217,157 @@ Tips:
   volume range is similar. The previous Python version of the bot leveraged
   [ffmpeg-normalize](https://github.com/slhck/ffmpeg-normalize) for this purpose.
 
-### Run
+### Prerequisites (Building From Source)
 
-For your convenience, simply run `./run.sh`.
+To build from source, the following tools are required:
+
+- [Rust toolchain](https://rustup.rs/). Tested with the latest version
+  (`rustc` version `1.95.0`), should work on older (but recent) versions as well.
+- `gcc`: Easiest path is to `sudo apt update; sudo apt install build-essential`
+- `cmake`: Simply `sudo apt update; sudo apt install cmake` on a Debian-based
+  Linux system (*e.g.*, Debian, Ubuntu, Pop!_OS, Mint, *etc.*). Tested with
+  version `3.22.1`.
+
+### Build from Source, Run Locally
+
+For your convenience, simply run `./run.sh`. The script (and the program)
+take two positional arguments: The path to your audio files and the path
+to the file containing your Discord token. Example:
+
+```bash
+./run.sh audio token
+```
+
+### Pre-built Binaries
+
+TODO/WIP: pre-built binaries on GitHub not yet available.
+
+A limited set of pre-built binaries are provided for each
+[release](https://github.com/blthayer/disquip-bot-rs/releases).
+
+Run the binary with no arguments or `--help` to get help. Example:
+
+Example:
+
+```bash
+./disquip-bot audio token
+```
+
+### crates.io
+
+TODO
+
+### `apt` / `systemd`
+
+If you'd like to install `disquip-bot` with `apt` and run as a daemon (service)
+managed by `systemd` with automatic program (re)start, follow the directions here.
+This is especially useful if you have an always-on server like a Raspberry Pi.
+
+TODO/WIP: pre-built debs on GitHub not yet available.
+A limited set of pre-built `.deb` packages are provided for each
+[release](https://github.com/blthayer/disquip-bot-rs/releases). Download the `.deb`
+approporate for your target machine.
+
+If there is not an appropriate `.deb` for your OS/architecture, it's relatively easy
+to create one for yourself. See the [Development](#development) section for
+prerequisites to build from source. There are several `deb*` recipes in the `justfile`
+- choose the one that best matches your use case. For building directly on the target,
+use the plain `deb` recipe, *e.g.* `just deb`.
+
+Prior to installation, we need to set up the Discord token and audio files. For the
+token:
+
+```bash
+sudo mkdir /etc/disquip-bot
+sudo touch /etc/disquip-bot/token
+sudo chmod 600 /etc/disquip-bot/token
+# Use your favorite editor to put the token in the file.
+# Avoid printing the token to the shell console so it doesn't
+# wind up in shell history.
+sudo nano /etc/disquip-bot/token
+```
+
+The program will look for audio files in `/usr/share/disquip-bot/audio`. You can
+directly place the audio file tree here (recommended), or use a symbolic link.
+Direct placement:
+
+```bash
+sudo mkdir -p /usr/share/disquip-bot/audio
+sudo cp -r /path/to/my/audio/* /usr/share/disquip-bot/audio/
+```
+
+Alternatively, using a symbolic link:
+
+```bash
+sudo mkdir /usr/share/disquip-bot
+sudo ln -s /path/to/my/audio /usr/share/disquip-bot/audio
+```
+
+NOTE: permissions can be tricky with the symbolic link approach. The service is run
+as a dynamic, unpriveleged user. This user must be able to read and execute (to list
+files) in the audio directory, which will not work in your user's home directory,
+except maybe in `~/Public`.
+
+Finally, we're ready to install the program, which is as simple as:
+
+```bash
+sudo apt install ./name-of-deb.deb
+```
+
+where `name-of-deb.deb` is appropriately replaced with the file you either downloaded
+or built locally.
+
+#### Working with the Service
+
+Check service health:
+
+```bash
+sudo systemctl status disquip-bot
+```
+
+Inspect the logs:
+
+```bash
+sudo journalctl -u disquip-bot
+```
+
+Prevent the service from running on boot:
+
+```bash
+sudo systemctl disable disquip-bot
+```
+
+Manually start the service:
+
+```bash
+sudo systemctl start disquip-bot
+```
+
+Manually stop the service:
+
+```bash
+sudo systemctl stop disquip-bot
+```
+
+Manually restart the service:
+
+```bash
+sudo systemctl restart disquip-bot
+```
+
+#### Uninstalling
+
+```bash
+sudo systemctl stop disquip-bot
+sudo apt remove --purge disquip-bot
+sudo rm -r /etc/disquip-bot/token
+```
+
+Additionally, consider deleting the audio files/directory at `/usr/share/disquip-bot`
+
+#### Upgrading
+
+Simply install a newer `.deb` via `apt`.
 
 ## Development
 
@@ -226,5 +375,25 @@ For your convenience, simply run `./run.sh`.
 
 - [Rust toolchain](https://rustup.rs/)
 - `cmake`: `sudo apt update; sudo apt install cmake` (version `3.22.1` tested)
-- (Optional): [just](https://just.systems/man/en/installation.html): `cargo install --locked just`
-- (Optional): [just-lsp](https://github.com/terror/just-lsp): `cargo install --locked just-lsp`
+- (Optional) [just](https://just.systems/man/en/installation.html): `cargo install --locked just`
+- (Optional) [just-lsp](https://github.com/terror/just-lsp): `cargo install --locked just-lsp`
+- (Optional) [cargo-deb](https://docs.rs/crate/cargo-deb/latest): `cargo install --locked cargo-deb`
+
+If you choose not to install and use `just`, you can manually copy + run recipes from
+the `justfile`, which will be referenced throughout.
+
+### Cross-compiling (`aarch64-unknown-linux-gnu`)
+
+Cross-compiling can be a bit of a headache. If possible, consider building directly
+on your target instead.
+
+```console
+# One time installs:
+sudo apt update
+sudo apt install -y gcc-aarch64-linux-gnu
+rustup target add aarch64-unknown-linux-gnu
+
+# Build:
+just build-aarch64
+# See also build-rpi4bi and build-jetson
+```

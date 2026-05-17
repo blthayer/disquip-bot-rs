@@ -1,13 +1,30 @@
 [package]
-name = "disquip-bot-rs"
+name = "disquip-bot"
 version = "0.7.1"
 edition = "2024"
 description = "A Discord bot to play audio files (quips) on command"
+documentation = "https://github.com/blthayer/disquip-bot-rs/blob/main/README.md"
 readme = "README.md"
 repository = "https://github.com/blthayer/disquip-bot-rs"
+homepage = "https://github.com/blthayer/disquip-bot-rs"
 license = "MIT"
 keywords = ["discord", "audio", "bot", "soundboard", "civ"]
 categories = ["games", "multimedia::audio"]
+
+[package.metadata.deb]
+maintainer = "Brandon Thayer <bthayer@tuta.com>"
+copyright = "2025, Brandon Thayer <bthayer@tuta.com>"
+license-file = ["LICENSE", "4"]
+extended-description = """\
+A Discord bot to play audio files (quips) on command.
+Users enter commands into a Discord text channel in a server in which the bot has been added/registered.
+Additionally includes randomization features for Civilization VI game setup.
+"""
+depends = "$auto"
+section = "sound"
+priority = "optional"
+maintainer-scripts = "systemd/"
+systemd-units = [{ unit-name = "disquip-bot", enable = true, start = true }]
 
 [dependencies]
 rand = { version = "0.10", default-features = false, features = ["thread_rng"] }

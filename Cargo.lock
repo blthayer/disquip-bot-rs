@@ -706,7 +706,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "disquip-bot-rs"
+name = "disquip-bot"
 version = "0.7.1"
 dependencies = [
  "ahash",
