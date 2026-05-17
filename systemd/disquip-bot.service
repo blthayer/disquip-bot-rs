@@ -1,0 +1,44 @@
+[Unit]
+Description=A Discord bot to play audio files (quips) on command
+Documentation=https://github.com/blthayer/disquip-bot-rs/blob/main/README.md
+After=network.target
+
+[Service]
+Type=exec
+# There's absolutely no reason to run as root. Using DynamicUser
+# is probably the most bang for your buck of any systemd option
+# from a security perspective.
+User=disquip-bot
+Group=disquip-bot
+DynamicUser=yes
+# This program need not write anything to the file system.
+ProtectSystem=strict
+# I would make this simply "true" instead of "read-only,"
+# but users may want to keep their audio files in their
+# home directories.
+ProtectHome=read-only
+# TODO: Continue restricting capabilities.
+
+# It is the user's responsibility to set up /usr/share/disquip-bot/audio
+# and /etc/disquip-bot/token. token should use 600 permissions.
+# We'll force appropriate ownership and permissions for the token here.
+# TODO: systemd has credential loading capabilities, but for now, keep
+# it simple and use a properly permissioned file that the program reads.
+ExecStartPre=+/usr/bin/chmod 600 /etc/disquip-bot/token
+ExecStartPre=+/usr/bin/chown disquip-bot:disquip-bot /etc/disquip-bot/token
+# Shouldn't need to mess with permissions for /usr/share/disquip-bot/audio,
+# since if a user created this it should be world-readable by default.
+ExecStart=/usr/bin/disquip-bot /usr/share/disquip-bot/audio /etc/disquip-bot/token
+Restart=always
+# Prevent log spam and CPU spinning with exponential backoff for restarts.
+# RestartSteps and RestartMaxDelaySec were introduced in systemd version 254,
+# so may not be available on older systems. This is okay. systemd will emit
+# a warning.
+RestartSec=15
+RestartSteps=4
+RestartMaxDelaySec=180
+StandardOutput=journal
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target

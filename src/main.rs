@@ -27,22 +27,34 @@ struct Data {
     pub map_len: usize,
 }
 
+// TODO: Could use nicer error proliferation with anyhow instead of
+// std::process:: sprinklings.
+fn read_dir_or_exit(dir: &str) -> std::fs::ReadDir {
+    match read_dir(dir) {
+        Ok(rd) => rd,
+        Err(e) => {
+            eprintln!("Failed to read directory at {dir}: {e:?}");
+            std::process::exit(1);
+        }
+    }
+}
+
 impl Data {
-    fn new(top_dir: String) -> Data {
+    fn new(top_dir: &str) -> Data {
         // Initialize the file map and a counter for the total number of DirEntries.
         let mut file_map: AHashMap<String, Vec<DirEntry>> = AHashMap::new();
         let mut map_len: usize = 0;
 
         // Loop over directories within the top_dir and fill out the AHashMap.
-        let result = read_dir(top_dir).unwrap();
-        for r in result {
+        let rd = read_dir_or_exit(top_dir);
+        for r in rd {
             let u = r.unwrap();
             // Only work with directories.
             if u.file_type().unwrap().is_dir() {
                 // Iterate over the files and place in the AHashMap using the
                 // directory's name as a key.
                 let key = u.file_name().into_string().unwrap();
-                let files = read_dir(u.path()).unwrap();
+                let files = read_dir_or_exit(u.path().to_str().unwrap());
                 for f in files {
                     let dir_entry = f.unwrap();
                     match file_map.entry(key.clone()) {
@@ -521,17 +533,14 @@ fn tickify(text: &str) -> String {
 // Exits the process.
 fn usage() -> ! {
     println!(
-        "
-Usage: disquip-bot-rs [-h | --help] /path/to/audio/files
+"
+Usage: disquip-bot-rs [-h | --help] /path/to/audio/files /path/to/token
 
-E.g.: \"disquip-bot-rs audio\" for an audio file tree in the local directory \"audio\"
+E.g.: \"disquip-bot-rs audio token\" for an \"audio\" directory and \"token\" file in the current directory.
 
-*** The \"DISCORD_TOKEN\" environment variable must be set. ***
+It is recommended that the token file use 600 permissions for security. Avoid leaking credentials to shell history when creating the file.
 
-For security, it's recommended to avoid leaking tokens to shell history. This can be
-achieved by modifying your shell history settings, or storing the token in a properly
-permissioned file (e.g., 600) and using a helper script to launch the program. You
-can find an example at https://github.com/blthayer/disquip-bot-rs/blob/main/run.sh.
+Currently, \"mp3\" and \"wav\" audio files are supported. Additional formats can be enabled at compile-time by adding features to the \"symphonia\" dependency in the project's \"Cargo.toml\" file. This requires building from source. 
 "
     );
     std::process::exit(1);
@@ -547,30 +556,35 @@ fn parse_args() -> (String, String) {
         usage();
     }
 
-    let top_dir = match args.len().cmp(&2) {
-        std::cmp::Ordering::Less => {
-            println!("Received zero arguments.");
+    let n: usize = 3;
+    let (top_dir, token_path) = match args.len().cmp(&n) {
+        std::cmp::Ordering::Less | std::cmp::Ordering::Greater => {
+            eprintln!("Received {} arguments, expected {n}\n", args.len() - 1);
             usage();
         }
-        std::cmp::Ordering::Equal => std::mem::take(&mut args[1]),
-        std::cmp::Ordering::Greater => {
-            println!("Received {} arguments.\n", args.len() - 1);
-            usage();
-        }
+        std::cmp::Ordering::Equal => (std::mem::take(&mut args[1]), std::mem::take(&mut args[2])),
     };
 
-    let Ok(token) = std::env::var("DISCORD_TOKEN") else {
-        println!("The \"DISCORD_TOKEN\" environment variable was not set.");
-        usage();
-    };
-
-    (top_dir, token)
+    (top_dir, token_path)
 }
 
 #[tokio::main]
 async fn main() {
-    let (top_dir, token) = parse_args();
-    let data = Data::new(top_dir);
+    // Collect arguments
+    let (top_dir, token_path) = parse_args();
+
+    // Read the token from file.
+    let token = match std::fs::read_to_string(&token_path) {
+        Ok(t) => t,
+        Err(e) => {
+            eprintln!("Error reading token file at {token_path}: {e:?}");
+            std::process::exit(1);
+        }
+    };
+    println!("Discord token successfully read from {token_path}.");
+
+    let data = Data::new(&top_dir);
+    println!("One time mapping of audio directory {top_dir} completed.");
 
     let intents = serenity::GatewayIntents::non_privileged()
         | serenity::GatewayIntents::GUILD_MESSAGES
@@ -619,9 +633,20 @@ async fn main() {
         })
         .build();
 
-    let client = serenity::ClientBuilder::new(token, intents)
+    let mut client = match serenity::ClientBuilder::new(token.trim(), intents)
         .framework(framework)
         .register_songbird()
-        .await;
-    client.unwrap().start().await.unwrap();
+        .await
+    {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Error starting serenity client: {e:?}");
+            std::process::exit(1);
+        }
+    };
+    println!("Serenity client initialized, about to start it and run forever...");
+    if let Err(e) = client.start().await {
+        eprintln!("The serenity client has failed: {e:?}");
+        std::process::exit(1);
+    }
 }
