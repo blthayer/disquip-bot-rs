@@ -1,5 +1,5 @@
 [package]
-name = "disquip-bot-rs"
+name = "disquip-bot"
 version = "0.7.1"
 edition = "2024"
 description = "A Discord bot to play audio files (quips) on command"
