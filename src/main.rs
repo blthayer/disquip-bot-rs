@@ -533,8 +533,7 @@ fn tickify(text: &str) -> String {
 // Exits the process.
 fn usage() -> ! {
     println!(
-"
-Usage: disquip-bot-rs [-h | --help] /path/to/audio/files /path/to/token
+"Usage: disquip-bot-rs [-h | --help] /path/to/audio/files /path/to/token
 
 E.g.: \"disquip-bot-rs audio token\" for an \"audio\" directory and \"token\" file in the current directory.
 
@@ -559,7 +558,11 @@ fn parse_args() -> (String, String) {
     let n: usize = 3;
     let (top_dir, token_path) = match args.len().cmp(&n) {
         std::cmp::Ordering::Less | std::cmp::Ordering::Greater => {
-            eprintln!("Received {} arguments, expected {n}\n", args.len() - 1);
+            eprintln!(
+                "Received {} arguments, expected {}\n",
+                args.len() - 1,
+                n - 1
+            );
             usage();
         }
         std::cmp::Ordering::Equal => (std::mem::take(&mut args[1]), std::mem::take(&mut args[2])),
