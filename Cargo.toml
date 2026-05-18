@@ -43,6 +43,7 @@ ahash = { version = "0.8", default-features = false, features = ["runtime-rng", 
 
 [features]
 default = []
+# Enables game setup randomization commands for Civilization VI.
 civ = []
 
 [profile.release]
