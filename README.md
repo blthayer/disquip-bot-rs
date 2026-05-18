@@ -54,7 +54,7 @@ files, you must be in a voice channel.
 This guide will not cover all commands in detail, as the `!help` contents should
 stand on its own.
 
-### Help and Available Quip Categories
+### Help Within Discord, Available Quip Categories
 
 #### help
 
@@ -154,12 +154,20 @@ available to the bot.
 This program is known to work on the following Linux systems:
 
 - Pop!_OS 22.04 LTS, x86_64 architecture - local build
-- Raspberry Pi OS (Debian 13, a.k.a. "Trixie"), aarch64 architecture (Raspberry Pi 4 Model B Rev 1.5) - local build
-- JetPack 6 (aka Ubuntu 22), aarch64 architecture (NVIDIA Jetson, Orin Nano) - cross-compilation
+- Raspberry Pi OS (Debian 13, a.k.a. "Trixie") April 2026 release, aarch64 architecture (Raspberry Pi 4 Model B Rev 1.5) - local build
+- JetPack 6 (based on Ubuntu 22), aarch64 architecture (NVIDIA Jetson, Orin Nano) - cross-compilation
 
-It very likely functions on other operating systems, but has not been tested on
+The bot very likely functions on other operating systems, but has not been tested on
 any besides those listed here. Please submit a PR to add your setup and any
-additional directions required.
+additional directions required. All directions here assume a Debian-based Linux
+distribution (*e.g.* Ubuntu, Pop!_OS, etc.).
+
+**NOTE**: Pre-built release binaries and recipes in the `justfile` use the
+`--all-features` flag for `cargo`, meaning that the `civ` (Civilization VI)
+feature is included. This feature does not add extra dependencies and is quite
+lightweight. If you still wish to have a build without the `civ` features, build
+from source yourself without the `--all-features` flag set (the `civ` features is
+*not* enabled by default via `Cargo.toml`).
 
 ### Discord App Configuration
 
@@ -236,8 +244,6 @@ to the file containing your Discord token. Example:
 
 ### Pre-built Binaries
 
-TODO/WIP: pre-built binaries on GitHub not yet available.
-
 A limited set of pre-built binaries are provided for each
 [release](https://github.com/blthayer/disquip-bot-rs/releases).
 
@@ -263,7 +269,6 @@ Reasonable precautions have been taken to protect your system - namely, the serv
 is run as an unpriveleged dynamic user and the filesystem is mounted read-only. See
 `systemd/disquip-bot.service` for more details.
 
-TODO/WIP: pre-built debs on GitHub not yet available.
 A limited set of pre-built `.deb` packages are provided for each
 [release](https://github.com/blthayer/disquip-bot-rs/releases). Download the `.deb`
 approporate for your target machine.
