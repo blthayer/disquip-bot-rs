@@ -11,6 +11,13 @@ This is a re-implementation of the now defunct
 Python. Unfortunately the original DisQuip bot died an early death due to Discord
 updating their API in a backwards-incompatible way.
 
+## Table of Contents
+
+1. [Disclaimers](#disclaimers)
+1. [Quick Start](#quick-start)
+1. [Usage Within Discord](#usage-within-discord)
+1. [Setup, Install, and Run](#setup-install-and-run)
+
 ## Disclaimers
 
 **This is a self-hosted bot** - *You* perform Discord configuration, collect your
