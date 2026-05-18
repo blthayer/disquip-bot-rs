@@ -53,6 +53,18 @@ deb-rpi4b-local: build-rpi4b-local
 deb-jetson-cross: build-jetson-cross _deb-aarch64
 
 # Ensure you've first updated the version field in Cargo.toml.
+# Requires GitHub CLI: https://github.com/cli/cli/blob/trunk/docs/install_linux.md
+# Requires jq: apt install jq
+# TODO: Use a changelog and put notes from changelog in release. For now, can manually
+# edit it.
 release: deb deb-aarch64-cross
+    #!/usr/bin/env bash
     VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
-    echo "VERSION"
+    git tag -a "${VERSION}" -m "Release ${VERSION}"
+    git push --atomic ${VERSION}
+    gh release create "$VERSION" \
+        --title "$VERSION" \
+        --notes "$VERSION" \
+        './target/release/disquip-bot#disquip-bot (x86_64)' \
+        './target/aarch64-unknown-linux-gnu/release/disquip-bot#disquip-bot (aarch64)' \
+        ./target/debian/*${VERSION}*.deb
