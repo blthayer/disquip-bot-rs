@@ -20,15 +20,14 @@ ProtectHome=read-only
 # TODO: Continue restricting capabilities.
 
 # It is the user's responsibility to set up /usr/share/disquip-bot/audio
-# and /etc/disquip-bot/token. token should use 600 permissions.
-# We'll force appropriate ownership and permissions for the token here.
-# TODO: systemd has credential loading capabilities, but for now, keep
-# it simple and use a properly permissioned file that the program reads.
+# and /etc/disquip-bot/token. token should use 600 permissions. We'll force
+# that here.
 ExecStartPre=+/usr/bin/chmod 600 /etc/disquip-bot/token
-ExecStartPre=+/usr/bin/chown disquip-bot:disquip-bot /etc/disquip-bot/token
+ExecStartPre=+/usr/bin/chown root:root /etc/disquip-bot/token
+LoadCredential=token:/etc/disquip-bot/token
 # Shouldn't need to mess with permissions for /usr/share/disquip-bot/audio,
 # since if a user created this it should be world-readable by default.
-ExecStart=/usr/bin/disquip-bot /usr/share/disquip-bot/audio /etc/disquip-bot/token
+ExecStart=/usr/bin/disquip-bot /usr/share/disquip-bot/audio ${CREDENTIALS_DIRECTORY}/token
 Restart=always
 # Prevent log spam and CPU spinning with exponential backoff for restarts.
 # RestartSteps and RestartMaxDelaySec were introduced in systemd version 254,
