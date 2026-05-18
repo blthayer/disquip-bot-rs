@@ -11,14 +11,28 @@ This is a re-implementation of the now defunct
 Python. Unfortunately the original DisQuip bot died an early death due to Discord
 updating their API in a backwards-incompatible way.
 
+## Table of Contents
+
+1. [Disclaimers](#disclaimers)
+1. [Quick Start](#quick-start)
+1. [Usage Within Discord](#usage-within-discord)
+1. [Setup, Install, and Run](#setup-install-and-run)
+
 ## Disclaimers
 
-**This is a self-hosted bot** - *you* perform Discord configuration, collect your
+**This is a self-hosted bot** - *You* perform Discord configuration, collect your
 own audio files, and run this program on your own PC, server, Raspberry Pi, etc.
 
-**This is (working) beta software** - while this program works swimmingly for my
-personal use and I'd love it if you gave it a try as well, it is not guaranteed
-to work everywhere, be 100% secure, be 100% stable, or be 100% "productionized."
+**This is (working) beta software** - It is not guaranteed to work everywhere or be
+100% secure, stable, or "productionized."
+
+While everything **does** seem to work just fine in my environment (no obvious memory
+leaks, no crashes after weeks of continuous runtime), testing is quite minimal, error
+handling is minimal/incomplete, logging is mostly missing, not all edge cases are
+covered, and security has not been assessed. Use at your own risk! No warranty is
+implied or provided for this freely available software.
+
+If you encounter any issues, please do file an issue or submit a pull request.
 
 ## Quick Start
 
@@ -29,17 +43,6 @@ to work everywhere, be 100% secure, be 100% stable, or be 100% "productionized."
 1. Create subdirectories in the `audio` directory and populate them with `mp3`
    and/or `wav` files.
 1. Compile and run locally: `./run.sh`
-
-## Disclaimer
-
-This software should be considered a beta. While everything seems to work just
-fine and the bot is stable in my environment (no obvious memory leaks and no crashes
-after weeks of continuous runtime), testing is quite minimal, error handling is
-minimal/incomplete, logging is missing, not all edge cases are covered, and security
-has not been assessed. Use at your own risk! No warranty is implied or provided for
-this freely available software.
-
-If you encounter any issues, please do file an issue or submit a pull request.
 
 ## Usage Within Discord
 
@@ -58,7 +61,7 @@ files, you must be in a voice channel.
 This guide will not cover all commands in detail, as the `!help` contents should
 stand on its own.
 
-### Help and Available Quip Categories
+### Help Within Discord, Available Quip Categories
 
 #### help
 
@@ -155,15 +158,38 @@ available to the bot.
 
 ## Setup, Install, and Run
 
-This program is known to work on the following Linux systems:
+**TL;DR**:
 
-- Pop!_OS 22.04 LTS, x86_64 architecture
-- TODO, WIP: Raspberry Pi OS (Debian 13, a.k.a. "Trixie"), aarch64 architecture (Raspberry Pi 4 Model B Rev 1.5)
-- JetPack 6 (aka Ubuntu 22), aarch64 architecture (NVIDIA Jetson, Orin Nano)
+1. Set up Discord application, add to your server, download token, save to file
+   with `600` permissions.
+1. Create a directory containing subdirectories of `.mp3` and `.wav` audio files.
+1. Run: `disquip-bot /path/to/audio /path/to/token`
+1. Use: see [Usage Within Discord](#usage-within-discord)
 
-It very likely functions on other operating systems, but has not been tested on
+**Installation methods**:
+
+1. Download a pre-built binary from a [release](https://github.com/blthayer/disquip-bot-rs/releases)
+1. Download and `apt install` a pre-packaged `.deb` from a
+   [release](https://github.com/blthayer/disquip-bot-rs/releases)
+1. Build binary or `.deb` from source yourself (recommend checking out a tag)
+
+**Known working Linux systems**:
+
+- Pop!_OS 22.04 LTS, x86_64 architecture - local build
+- Raspberry Pi OS (Debian 13, a.k.a. "Trixie") April 2026 release, aarch64 architecture (Raspberry Pi 4 Model B Rev 1.5) - local build
+- JetPack 6 (based on Ubuntu 22), aarch64 architecture (NVIDIA Jetson, Orin Nano) - cross-compilation
+
+The bot very likely functions on other operating systems, but has not been tested on
 any besides those listed here. Please submit a PR to add your setup and any
-additional directions required.
+additional directions required. All directions here assume a Debian-based Linux
+distribution (*e.g.* Ubuntu, Pop!_OS, etc.).
+
+**NOTE**: Pre-built release binaries and recipes in the `justfile` use the
+`--all-features` flag for `cargo`, meaning that the `civ` (Civilization VI)
+feature is included. This feature does not add extra dependencies and is quite
+lightweight. If you still wish to have a build without the `civ` features, build
+from source yourself without the `--all-features` flag set (the `civ` features is
+*not* enabled by default via `Cargo.toml`).
 
 ### Discord App Configuration
 
@@ -226,7 +252,7 @@ To build from source, the following tools are required:
 - `gcc`: Easiest path is to `sudo apt update; sudo apt install build-essential`
 - `cmake`: Simply `sudo apt update; sudo apt install cmake` on a Debian-based
   Linux system (*e.g.*, Debian, Ubuntu, Pop!_OS, Mint, *etc.*). Tested with
-  version `3.22.1`.
+  versions `3.22.1` and `3.31.6`.
 
 ### Build from Source, Run Locally
 
@@ -239,8 +265,6 @@ to the file containing your Discord token. Example:
 ```
 
 ### Pre-built Binaries
-
-TODO/WIP: pre-built binaries on GitHub not yet available.
 
 A limited set of pre-built binaries are provided for each
 [release](https://github.com/blthayer/disquip-bot-rs/releases).
@@ -257,13 +281,16 @@ Example:
 
 TODO
 
-### `apt` / `systemd`
+### `apt` / `systemd` (`.deb` files)
 
 If you'd like to install `disquip-bot` with `apt` and run as a daemon (service)
 managed by `systemd` with automatic program (re)start, follow the directions here.
 This is especially useful if you have an always-on server like a Raspberry Pi.
 
-TODO/WIP: pre-built debs on GitHub not yet available.
+Reasonable precautions have been taken to protect your system - namely, the service
+is run as an unpriveleged dynamic user and the filesystem is mounted read-only. See
+`systemd/disquip-bot.service` for more details.
+
 A limited set of pre-built `.deb` packages are provided for each
 [release](https://github.com/blthayer/disquip-bot-rs/releases). Download the `.deb`
 approporate for your target machine.
@@ -272,7 +299,7 @@ If there is not an appropriate `.deb` for your OS/architecture, it's relatively 
 to create one for yourself. See the [Development](#development) section for
 prerequisites to build from source. There are several `deb*` recipes in the `justfile`
 - choose the one that best matches your use case. For building directly on the target,
-use the plain `deb` recipe, *e.g.* `just deb`.
+use the `deb-local` recipe, *e.g.* `just deb-local`.
 
 Prior to installation, we need to set up the Discord token and audio files. For the
 token:
@@ -374,7 +401,7 @@ Simply install a newer `.deb` via `apt`.
 ### Prerequisites
 
 - [Rust toolchain](https://rustup.rs/)
-- `cmake`: `sudo apt update; sudo apt install cmake` (version `3.22.1` tested)
+- `cmake`: `sudo apt update; sudo apt install cmake`
 - (Optional) [just](https://just.systems/man/en/installation.html): `cargo install --locked just`
 - (Optional) [just-lsp](https://github.com/terror/just-lsp): `cargo install --locked just-lsp`
 - (Optional) [cargo-deb](https://docs.rs/crate/cargo-deb/latest): `cargo install --locked cargo-deb`
@@ -385,7 +412,9 @@ the `justfile`, which will be referenced throughout.
 ### Cross-compiling (`aarch64-unknown-linux-gnu`)
 
 Cross-compiling can be a bit of a headache. If possible, consider building directly
-on your target instead.
+on your target instead. In the `justfile`, recipes that end in `-cross` signify
+they are intended for cross-compilation, while those that end in `-local` signify
+they should be run on the target.
 
 ```console
 # One time installs:
@@ -394,6 +423,6 @@ sudo apt install -y gcc-aarch64-linux-gnu
 rustup target add aarch64-unknown-linux-gnu
 
 # Build:
-just build-aarch64
-# See also build-rpi4bi and build-jetson
+just build-aarch64-cross
+# See also build-rpi4bi-local and build-jetson-cross
 ```
