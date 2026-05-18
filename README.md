@@ -158,7 +158,22 @@ available to the bot.
 
 ## Setup, Install, and Run
 
-This program is known to work on the following Linux systems:
+**TL;DR**:
+
+1. Set up Discord application, add to your server, download token, save to file
+   with `600` permissions.
+1. Create a directory containing subdirectories of `.mp3` and `.wav` audio files.
+1. Run: `disquip-bot /path/to/audio /path/to/token`
+1. Use: see [Usage Within Discord](#usage-within-discord)
+
+**Installation methods**:
+
+1. Download a pre-built binary from a [release](https://github.com/blthayer/disquip-bot-rs/releases)
+1. Download and `apt install` a pre-packaged `.deb` from a
+   [release](https://github.com/blthayer/disquip-bot-rs/releases)
+1. Build binary or `.deb` from source yourself (recommend checking out a tag)
+
+**Known working Linux systems**:
 
 - Pop!_OS 22.04 LTS, x86_64 architecture - local build
 - Raspberry Pi OS (Debian 13, a.k.a. "Trixie") April 2026 release, aarch64 architecture (Raspberry Pi 4 Model B Rev 1.5) - local build
@@ -266,7 +281,7 @@ Example:
 
 TODO
 
-### `apt` / `systemd`
+### `apt` / `systemd` (`.deb` files)
 
 If you'd like to install `disquip-bot` with `apt` and run as a daemon (service)
 managed by `systemd` with automatic program (re)start, follow the directions here.
