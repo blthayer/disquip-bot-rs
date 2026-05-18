@@ -61,10 +61,13 @@ release: deb deb-aarch64-cross
     #!/usr/bin/env bash
     VERSION=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
     git tag -a "${VERSION}" -m "Release ${VERSION}"
-    git push --atomic ${VERSION}
+    git push origin "${VERSION}"
+    mkdir -p ./target/github
+    cp ./target/release/disquip-bot ./target/github/disquip-bot-x86_64
+    cp ./target/aarch64-unknown-linux-gnu/release/disquip-bot ./target/github/disquip-bot-aarch64
     gh release create "$VERSION" \
         --title "$VERSION" \
         --notes "$VERSION" \
-        './target/release/disquip-bot#disquip-bot (x86_64)' \
-        './target/aarch64-unknown-linux-gnu/release/disquip-bot#disquip-bot (aarch64)' \
+        ./target/github/disquip-bot-x86_64 \
+        ./target/github/disquip-bot-aarch64 \
         ./target/debian/*${VERSION}*.deb
