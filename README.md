@@ -6,6 +6,8 @@ on command.
 In essence, this is a customizable soundboard. Commands for randomizing aspects of
 Civilization VI game setup are optionally included (assumes you have all the DLC).
 
+https://github.com/user-attachments/assets/316cd5e1-277f-41c8-894f-0e7120be4d61
+
 This is a re-implementation of the now defunct
 [disquip-bot](https://github.com/blthayer/disquip-bot), originally written in
 Python. Unfortunately the original DisQuip bot died an early death due to Discord
