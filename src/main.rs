@@ -227,7 +227,7 @@ Type \"!help <command>\" for more info on a command.",
 #[poise::command(prefix_command, guild_only = true)]
 async fn list(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
     let data = ctx.data();
-    if let Some(cat_str) = cat {
+    let mut help_str = if let Some(cat_str) = cat {
         let cat_vec = data.get_vec(&cat_str)?;
         let mut help_str = format!("Available quips for category \"{cat_str}\":\n```\n");
         for (idx, item) in cat_vec.iter().enumerate() {
@@ -240,23 +240,24 @@ async fn list(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
                 .as_str(),
             );
         }
-        if help_str.len() < 1997 {
-            help_str.push_str("```");
-            ctx.say(help_str).await?;
-        } else {
-            let to_say = split_str(&help_str);
-            for say in to_say {
-                ctx.say(say).await?;
-            }
-        }
+        help_str
     } else {
         let mut key_vec: Vec<String> = data.file_map.keys().cloned().collect();
         key_vec.sort();
-        let mut help_str = String::from("Quip categories:\n");
+        let mut help_str = String::from("Quip categories:\n```\n");
         for key in key_vec {
-            help_str.push_str(format!("**{key}**\n").as_str());
+            help_str.push_str(format!("{key}\n").as_str());
         }
+        help_str
+    };
+    if help_str.len() < 1997 {
+        help_str.push_str("```");
         ctx.say(help_str).await?;
+    } else {
+        let to_say = split_str(&help_str);
+        for say in to_say {
+            ctx.say(say).await?;
+        }
     }
     Ok(())
 }
