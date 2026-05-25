@@ -63,9 +63,7 @@ files, you must be in a voice channel.
 This guide will not cover all commands in detail, as the `!help` contents should
 stand on its own.
 
-### Help Within Discord, Available Quip Categories
-
-#### help
+### help
 
 To get the available commands, type `!help`, which will give output similar to
 the following:
@@ -73,6 +71,9 @@ the following:
 ```
 Commands:
   !list                List quip categories or list quips for a given command. E.g., "!list" or "!list a1"
+  !search_exact        Exact search for quips by file name. Aka "!se." E.g., "!se foo".
+  !search_fuzzy        Fuzzy search for quips by file name. Aka "!sf." E.g., "!sf foo".
+  !lucky               Play by search. Aka "!l." E.g., "!l foo". Uses fuzzy search by default.
   !random              Aka "!r" or "!rand." Play a random quip.
   !disconnect          Disconnect the bot from its current voice channel.
   !dice                Roll the dice! Aka "!d." Usage: "!dice <n sides> <n dice>" - n dice defaults to 1
@@ -101,7 +102,7 @@ Parameters:
 cat   (optional) 
 ```
 
-#### list
+### list
 
 The `!list` command lists available quip categories (which can then be used as
 commands), which are defined by the installed [audio files](#audio-files).
@@ -139,7 +140,15 @@ in my setup `!list a3` yields the following taunts from Age of Empires 3:
 
 To play the taunt that says "No," you would then type `!a3 2` into the text channel.
 
-#### Playing a quip
+### Searching for quips
+
+TL;DR: `!se foo` or `!sf foo`.
+
+There are two different search methods: exact (`!search_exact`, aka `!se`) and
+fuzzy (`!search_fuzzy`, aka `!sf`). More details can be found via
+`!help search_exact` and `!help search_fuzzy`.
+
+### Playing a quip
 
 TL;DR: `!a3 2`
 
@@ -157,6 +166,13 @@ TL;DR: `!r`
 Plays a globally random quip, or a random quip from a specified category
 (`!r <category>`). This is a lot of fun and great for... discovering... quips
 available to the bot.
+
+#### lucky
+
+TL;DR: `!l foo`
+
+Play by search, in this case, the quip whose name best matches the
+string `foo`. More details can be found via `!help lucky`
 
 ## Setup, Install, and Run
 

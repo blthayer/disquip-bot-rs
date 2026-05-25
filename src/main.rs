@@ -24,6 +24,13 @@ type GenericContext<'a> = poise::Context<'a, Data, Error>;
 struct Data {
     // Map of quip categories to directory entries.
     pub file_map: FileMap,
+    // TODO: Could use &str here since it shares the same keys as
+    // `file_map`, but I don't really feel like messing with lifetimes.
+    // TODO: Could use a single map and store the transformed strings
+    // in the file_map alongside the full DirEntry structs...
+    /// Parallel to `file_map`, but stores lowercase file names only
+    /// (no extra path info), sans extension.
+    str_map: AHashMap<String, Vec<String>>,
     pub map_len: usize,
 }
 
@@ -42,7 +49,8 @@ fn read_dir_or_exit(dir: &str) -> std::fs::ReadDir {
 impl Data {
     fn new(top_dir: &str) -> Data {
         // Initialize the file map and a counter for the total number of DirEntries.
-        let mut file_map: AHashMap<String, Vec<DirEntry>> = AHashMap::new();
+        let mut file_map: FileMap = AHashMap::new();
+        let mut str_map: AHashMap<String, Vec<String>> = AHashMap::new();
         let mut map_len: usize = 0;
 
         // Loop over directories within the top_dir and fill out the AHashMap.
@@ -57,6 +65,10 @@ impl Data {
                 let files = read_dir_or_exit(u.path().to_str().unwrap());
                 for f in files {
                     let dir_entry = f.unwrap();
+                    let file_path = dir_entry.path();
+
+                    // Insert into the file_map.
+                    // TODO: This key cloning feels silly.
                     match file_map.entry(key.clone()) {
                         std::collections::hash_map::Entry::Occupied(mut oe) => {
                             oe.get_mut().push(dir_entry);
@@ -65,16 +77,51 @@ impl Data {
                             ve.insert(vec![dir_entry]);
                         }
                     }
+
+                    // Get the lowercase version of the file name, sans extension.
+                    let str_entry = std::path::Path::new(&file_path)
+                        .file_stem()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_lowercase();
+
+                    // Insert into the str_map.
+                    match str_map.entry(key.clone()) {
+                        std::collections::hash_map::Entry::Occupied(mut oe) => {
+                            oe.get_mut().push(str_entry);
+                        }
+                        std::collections::hash_map::Entry::Vacant(ve) => {
+                            ve.insert(vec![str_entry]);
+                        }
+                    }
                     map_len += 1;
                 }
             }
         }
 
-        // Sort.
+        // Sort. In order to sort the file_map and the str_map consistently,
+        // perform the same mutations for sorting (remove extension, lowercase).
+        // Yes, it would probably be more efficient to get the sort order for
+        // one and use it to sort the other...
         for val in file_map.values_mut() {
-            val.sort_by_key(std::fs::DirEntry::path);
+            val.sort_by_key(|k| {
+                std::path::Path::new(&k.path())
+                    .file_stem()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_lowercase()
+            });
         }
-        Data { file_map, map_len }
+        for val in str_map.values_mut() {
+            val.sort();
+        }
+        Data {
+            file_map,
+            str_map,
+            map_len,
+        }
     }
 
     /// Get a `DirEntry` from the given index. The index is effectively an
@@ -103,8 +150,49 @@ impl Data {
             return Ok(cat_vec);
         }
 
-        // TODO: How does "into" work?
         Err(format!("The provided category {cat:?} is invalid. Use \"!list\" with no arguments to get valid categories.").into())
+    }
+
+    /// Compute Jaro-Winkler distance for all mapped files in the `file_map` via
+    /// the `str_map` (case insensitive). `compare_to` is cast to lowercase prior
+    /// to comparing with every string in the `str_map`. The returned vector is sorted
+    /// by distance score (best to worst).
+    fn ordered_distance(&self, compare_to: &str) -> Vec<(f64, String, usize)> {
+        // Jaro is "often used in the field of record linkage and string matching"
+        // and is "particularly effective in comparing short strings, such as names"
+        //
+        // Jaro-Winkler adds additional sensitivity to matching prefixes - probably
+        // not ideal in this use case. For example, one might search "dad" to find
+        // "You_re not my dad.mp3"
+        let comparator =
+            rapidfuzz::distance::jaro::BatchComparator::new(compare_to.to_lowercase().chars());
+
+        let mut all_scores: Vec<(f64, String, usize)> = Vec::with_capacity(self.map_len);
+        // This could of course be parallelized in the future. For now, KISS.
+        for (cat, vec) in &self.str_map {
+            for (idx, name) in vec.iter().enumerate() {
+                let distance = comparator.distance(name.chars());
+                all_scores.push((distance, cat.clone(), idx));
+                // println!("{cat} {idx} {name} {distance:.2}");
+            }
+        }
+        all_scores.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        all_scores
+    }
+
+    /// Check for exact matches via `contains` for every file name in the `str_map`.
+    /// Case insensitive.
+    fn name_contains(&self, contains: &str) -> Vec<(String, usize)> {
+        let contains = contains.to_lowercase();
+        let mut contains_vec: Vec<(String, usize)> = Vec::new();
+        for (cat, vec) in &self.str_map {
+            for (idx, name) in vec.iter().enumerate() {
+                if name.contains(&contains) {
+                    contains_vec.push((cat.clone(), idx));
+                }
+            }
+        }
+        contains_vec
     }
 }
 
@@ -338,11 +426,172 @@ async fn random(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
         "```Playing quip \"{} {}\" ({})```",
         chosen_category,
         // Convert to 1-based indexing.
-        u32::try_from(idx + 1)?,
+        idx + 1,
         chosen_file.file_name().into_string().unwrap()
     ))
     .await?;
     play(&ctx, chosen_file).await?;
+    Ok(())
+}
+
+/// Fuzzy search for quips by file name. Aka "!sf." E.g., "!sf foo".
+///
+/// Optionally include a maximum number of results (10 by default),
+/// *e.g.* `!search_fuzzy foo 20`.
+///
+/// Wrap multiple words in quotes, *e.g.* `!sf "foo bar"`
+///
+/// Use fuzzy search when you have an inexact search term, otherwise use
+/// exact search (see `search_exact`).
+///
+/// The search is case insensitive, fuzzy, does not include the category
+/// (only the file name), and excludes the file extension. The fuzzy search
+/// method used is [Jaro similarity](https://docs.rs/rapidfuzz/latest/rapidfuzz/distance/jaro/index.html).
+#[poise::command(prefix_command, aliases("sf",))]
+async fn search_fuzzy(ctx: Context<'_>, search_for: String, n: Option<usize>) -> Result<(), Error> {
+    let n = match n {
+        None => 10,
+        Some(n) => {
+            if n > 100 {
+                ctx.say("\"n\" must be less than or equal to 100. Try again.")
+                    .await?;
+                return Ok(());
+            }
+            n
+        }
+    };
+    let data = ctx.data();
+    // This will never be empty since we're scoring every single file and
+    // returning them all.
+    let scores = data.ordered_distance(&search_for);
+    let score_slice = &scores[0..std::cmp::min(n, scores.len())];
+    let mut to_say = String::from("```");
+    for (_, cat, idx) in score_slice {
+        let name = &data.file_map.get(cat).unwrap()[*idx]
+            .file_name()
+            .into_string()
+            .unwrap();
+        to_say.push_str(format!("!{cat} {}: \"{name}\"\n", idx + 1).as_str());
+    }
+
+    if to_say.len() < 1997 {
+        to_say.push_str("```");
+        ctx.say(to_say).await?;
+    } else {
+        let to_say = split_str(&to_say);
+        for say in to_say {
+            ctx.say(say).await?;
+        }
+    }
+    Ok(())
+}
+
+/// Exact search for quips by file name. Aka "!se." E.g., "!se foo".
+///
+/// Optionally include a maximum number of results (10 by default),
+/// *e.g.* `!search_exact foo 20`.
+///
+/// Wrap multiple words in quotes, *e.g.* `!se "foo bar"`
+///
+/// Alternatively use fuzzy search when you have an inexact search term. See
+/// `search_fuzzy`.
+///
+/// The search is case insensitive, does not include the category (only the
+/// file name), and excludes the file extension. This search is effectively
+/// checking if `search_for` is exactly contained in a quip file name.
+#[poise::command(prefix_command, aliases("se",))]
+async fn search_exact(ctx: Context<'_>, search_for: String, n: Option<usize>) -> Result<(), Error> {
+    let n = match n {
+        None => 10,
+        Some(n) => {
+            if n > 100 {
+                ctx.say("\"n\" must be less than or equal to 100. Try again.")
+                    .await?;
+                return Ok(());
+            }
+            n
+        }
+    };
+    let data = ctx.data();
+    let matches = data.name_contains(&search_for);
+    if matches.is_empty() {
+        ctx.say("No matches.").await?;
+        return Ok(());
+    }
+    let matches_slice = &matches[0..std::cmp::min(n, matches.len())];
+    let mut to_say = String::from("```");
+    for (cat, idx) in matches_slice {
+        let name = &data.file_map.get(cat).unwrap()[*idx]
+            .file_name()
+            .into_string()
+            .unwrap();
+        to_say.push_str(format!("!{cat} {}: \"{name}\"\n", idx + 1).as_str());
+    }
+
+    if to_say.len() < 1997 {
+        to_say.push_str("```");
+        ctx.say(to_say).await?;
+    } else {
+        let to_say = split_str(&to_say);
+        for say in to_say {
+            ctx.say(say).await?;
+        }
+    }
+    Ok(())
+}
+
+/// Play by search. Aka "!l." E.g., "!l foo". Uses fuzzy search by default.
+///
+/// Wrap multiple words in quotes, *e.g.* `!l "foo bar"`.
+///
+/// To use exact search, add a trailing "e", *e.g.* `!l "foo bar" e`
+/// or `!l foo e`.
+///
+/// For fuzzy search, the quip whose name is the best match is played. For
+/// exact search, the first matching quip is played (which is somewhat random).
+///
+/// See `search_fuzzy` and `search_exact` for details on the search aspect.
+#[poise::command(prefix_command, aliases("l",))]
+async fn lucky(ctx: Context<'_>, search_for: String, e: Option<String>) -> Result<(), Error> {
+    let data = ctx.data();
+    let to_get: (String, usize) = match e {
+        None => {
+            // Will never be empty.
+            let mut scores = data.ordered_distance(&search_for);
+            let first = std::mem::take(&mut scores[0]);
+            (first.1, first.2)
+        }
+        Some(user_str) => {
+            if user_str != "e" {
+                ctx.say(format!("Unexpected argument: {user_str}")).await?;
+                return Ok(());
+            }
+
+            let mut results = data.name_contains(&search_for);
+
+            if results.is_empty() {
+                ctx.say("No matches.").await?;
+                return Ok(());
+            }
+
+            std::mem::take(&mut results[0])
+        }
+    };
+
+    let to_play = &data.file_map.get(&to_get.0).unwrap()[to_get.1];
+
+    // Join the voice channel.
+    join(&ctx).await?;
+    ctx.say(format!(
+        "```Playing quip \"{} {}\" ({})```",
+        to_get.0,
+        // Convert to 1-based indexing.
+        to_get.1 + 1,
+        to_play.file_name().into_string().unwrap()
+    ))
+    .await?;
+    play(&ctx, to_play).await?;
+
     Ok(())
 }
 
@@ -585,10 +834,10 @@ async fn main() {
             std::process::exit(1);
         }
     };
-    println!("Discord token successfully read from {token_path}.");
+    println!("Discord token successfully read from \"{token_path}.\"");
 
     let data = Data::new(&top_dir);
-    println!("One time mapping of audio directory {top_dir} completed.");
+    println!("One time mapping of audio directory \"{top_dir}\" completed.");
 
     let intents = serenity::GatewayIntents::non_privileged()
         | serenity::GatewayIntents::GUILD_MESSAGES
@@ -606,11 +855,24 @@ async fn main() {
     command.aliases = data.file_map.keys().cloned().collect();
 
     #[cfg(not(feature = "civ"))]
-    let commands = vec![list(), random(), disconnect(), dice(), help(), command];
+    let commands = vec![
+        list(),
+        search_exact(),
+        search_fuzzy(),
+        lucky(),
+        random(),
+        disconnect(),
+        dice(),
+        help(),
+        command,
+    ];
 
     #[cfg(feature = "civ")]
     let commands = vec![
         list(),
+        search_exact(),
+        search_fuzzy(),
+        lucky(),
         random(),
         disconnect(),
         dice(),
@@ -648,7 +910,7 @@ async fn main() {
             std::process::exit(1);
         }
     };
-    println!("Serenity client initialized, about to start it and run forever...");
+    println!("Serenity Discord client initialized, about to start it and run forever...");
     if let Err(e) = client.start().await {
         eprintln!("The serenity client has failed: {e:?}");
         std::process::exit(1);
