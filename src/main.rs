@@ -24,6 +24,11 @@ type GenericContext<'a> = poise::Context<'a, Data, Error>;
 struct Data {
     // Map of quip categories to directory entries.
     pub file_map: FileMap,
+    // TODO: Could use &str here since it shares the same keys as
+    // `file_map`, but I don't really feel like messing with lifetimes.
+    /// Parallel to `file_map`, but stores lowercase file names only
+    /// (no extra path info), sans extension.
+    str_map: AHashMap<String, Vec<String>>,
     pub map_len: usize,
 }
 
@@ -39,10 +44,31 @@ fn read_dir_or_exit(dir: &str) -> std::fs::ReadDir {
     }
 }
 
+// Resources:
+// https://docs.rs/rapidfuzz/latest/rapidfuzz/distance/damerau_levenshtein/struct.BatchComparator.html
+//
+// Thoughts:
+//
+// Algorithm:
+// Probably want Jaro or Jaro-Winkler.
+//
+// Jaro is "often used in the field of record linkage and string matching"
+// and is "particularly effective in comparing short strings, such as names"l
+//
+// Jaro-Winkler adds additional sensitivity to matching prefixes - seems good?
+//
+// Demerau-Levenshtein seems more geared towards "applications where transpositions are
+// common... typing errors"
+//
+// OSA is like D-L but treats any transposition as a single operation.
+//
+// Jaro also appears way faster looking at the benchmarks.
+
 impl Data {
     fn new(top_dir: &str) -> Data {
         // Initialize the file map and a counter for the total number of DirEntries.
         let mut file_map: AHashMap<String, Vec<DirEntry>> = AHashMap::new();
+        let mut str_map: AHashMap<String, Vec<String>> = AHashMap::new();
         let mut map_len: usize = 0;
 
         // Loop over directories within the top_dir and fill out the AHashMap.
@@ -57,12 +83,34 @@ impl Data {
                 let files = read_dir_or_exit(u.path().to_str().unwrap());
                 for f in files {
                     let dir_entry = f.unwrap();
+                    let file_path = dir_entry.path();
+
+                    // Insert into the file_map.
+                    // TODO: This key cloning feels silly.
                     match file_map.entry(key.clone()) {
                         std::collections::hash_map::Entry::Occupied(mut oe) => {
                             oe.get_mut().push(dir_entry);
                         }
                         std::collections::hash_map::Entry::Vacant(ve) => {
                             ve.insert(vec![dir_entry]);
+                        }
+                    }
+
+                    // Get the lowercase version of the file name, sans extension.
+                    let str_entry = std::path::Path::new(&file_path)
+                        .file_stem()
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .to_lowercase();
+
+                    // Insert into the str_map.
+                    match str_map.entry(key.clone()) {
+                        std::collections::hash_map::Entry::Occupied(mut oe) => {
+                            oe.get_mut().push(str_entry);
+                        }
+                        std::collections::hash_map::Entry::Vacant(ve) => {
+                            ve.insert(vec![str_entry]);
                         }
                     }
                     map_len += 1;
@@ -74,7 +122,11 @@ impl Data {
         for val in file_map.values_mut() {
             val.sort_by_key(std::fs::DirEntry::path);
         }
-        Data { file_map, map_len }
+        Data {
+            file_map,
+            str_map,
+            map_len,
+        }
     }
 
     /// Get a `DirEntry` from the given index. The index is effectively an
