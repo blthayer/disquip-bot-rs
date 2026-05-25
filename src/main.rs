@@ -424,7 +424,7 @@ async fn random(ctx: Context<'_>, cat: Option<String>) -> Result<(), Error> {
         "```Playing quip \"{} {}\" ({})```",
         chosen_category,
         // Convert to 1-based indexing.
-        u32::try_from(idx + 1)?,
+        idx + 1,
         chosen_file.file_name().into_string().unwrap()
     ))
     .await?;
@@ -535,6 +535,61 @@ async fn search_exact(ctx: Context<'_>, search_for: String, n: Option<usize>) ->
             ctx.say(say).await?;
         }
     }
+    Ok(())
+}
+
+/// Play by search. Aka "!l." E.g., "!l foo". Uses fuzzy search by default.
+///
+/// Wrap multiple words in quotes, *e.g.* `!l "foo bar"`.
+///
+/// To use exact search, add a trailing "e", *e.g.* `!l "foo bar" e`
+/// or `!l foo e`.
+///
+/// For fuzzy search, the quip whose name is the best match is played. For
+/// exact search, the first matching quip is played (which is somewhat random).
+///
+/// See `search_fuzzy` and `search_exact` for details on the search aspect.
+#[poise::command(prefix_command, aliases("l",))]
+async fn lucky(ctx: Context<'_>, search_for: String, e: Option<String>) -> Result<(), Error> {
+    let data = ctx.data();
+    let to_get: (String, usize) = match e {
+        None => {
+            // Will never be empty.
+            let mut scores = data.ordered_distance(&search_for);
+            let first = std::mem::take(&mut scores[0]);
+            (first.1, first.2)
+        }
+        Some(user_str) => {
+            if user_str != "e" {
+                ctx.say(format!("Unexpected argument: {user_str}")).await?;
+                return Ok(());
+            }
+
+            let mut results = data.name_contains(&search_for);
+
+            if results.is_empty() {
+                ctx.say("No matches.").await?;
+                return Ok(());
+            }
+
+            std::mem::take(&mut results[0])
+        }
+    };
+
+    let to_play = &data.file_map.get(&to_get.0).unwrap()[to_get.1];
+
+    // Join the voice channel.
+    join(&ctx).await?;
+    ctx.say(format!(
+        "```Playing quip \"{} {}\" ({})```",
+        to_get.0,
+        // Convert to 1-based indexing.
+        to_get.1 + 1,
+        to_play.file_name().into_string().unwrap()
+    ))
+    .await?;
+    play(&ctx, to_play).await?;
+
     Ok(())
 }
 
@@ -777,10 +832,10 @@ async fn main() {
             std::process::exit(1);
         }
     };
-    println!("Discord token successfully read from {token_path}.");
+    println!("Discord token successfully read from \"{token_path}.\"");
 
     let data = Data::new(&top_dir);
-    println!("One time mapping of audio directory {top_dir} completed.");
+    println!("One time mapping of audio directory \"{top_dir}\" completed.");
 
     let intents = serenity::GatewayIntents::non_privileged()
         | serenity::GatewayIntents::GUILD_MESSAGES
@@ -802,6 +857,7 @@ async fn main() {
         list(),
         search_exact(),
         search_fuzzy(),
+        lucky(),
         random(),
         disconnect(),
         dice(),
@@ -814,6 +870,7 @@ async fn main() {
         list(),
         search_exact(),
         search_fuzzy(),
+        lucky(),
         random(),
         disconnect(),
         dice(),
@@ -851,7 +908,7 @@ async fn main() {
             std::process::exit(1);
         }
     };
-    println!("Serenity client initialized, about to start it and run forever...");
+    println!("Serenity Discord client initialized, about to start it and run forever...");
     if let Err(e) = client.start().await {
         eprintln!("The serenity client has failed: {e:?}");
         std::process::exit(1);
