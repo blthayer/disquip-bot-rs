@@ -181,11 +181,13 @@ impl Data {
     }
 
     /// Check for exact matches via `contains` for every file name in the `str_map`.
+    /// Case insensitive.
     fn name_contains(&self, contains: &str) -> Vec<(String, usize)> {
+        let contains = contains.to_lowercase();
         let mut contains_vec: Vec<(String, usize)> = Vec::new();
         for (cat, vec) in &self.str_map {
             for (idx, name) in vec.iter().enumerate() {
-                if name.contains(contains) {
+                if name.contains(&contains) {
                     contains_vec.push((cat.clone(), idx));
                 }
             }
