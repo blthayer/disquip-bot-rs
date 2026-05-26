@@ -239,8 +239,9 @@ async fn join(ctx: &Context<'_>) -> Result<(), Error> {
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
 
+    let guild_id = guild.id;
     // Exit early if we're already in the channel.
-    if let Some(handler_lock) = manager.get(ctx.guild_id().unwrap()) {
+    if let Some(handler_lock) = manager.get(guild_id) {
         let handler = handler_lock.lock().await;
 
         if let Some(current_id) = handler.current_channel()
@@ -252,7 +253,30 @@ async fn join(ctx: &Context<'_>) -> Result<(), Error> {
 
     // It seems to be fine if there are multiple join calls, probably no need
     // to add our own conditional here.
-    let handler_lock = manager.join(guild.id, songbird_id).await?;
+    let handler_lock = manager.join(guild_id, songbird_id).await?;
+
+    // Leave the channel when only bots remain.
+    let cache = std::sync::Arc::clone(&ctx.serenity_context.cache);
+    tokio::spawn(async move {
+        loop {
+            // Don't spam.
+            tokio::time::sleep(tokio::time::Duration::from_mins(1)).await;
+            // Leave the channel if only bots remain.
+            match guild.channels.get(&channel_id) {
+                Some(guild_channel) => {
+                    let members = guild_channel
+                        .members(std::sync::Arc::clone(&cache))
+                        .unwrap();
+                    if members.iter().all(|m| m.user.bot) {
+                        manager.remove(guild_id).await.unwrap();
+                        return;
+                    }
+                }
+                None => return,
+            }
+        }
+    });
+
     let mut handler = handler_lock.lock().await;
     // Ensure there's only ever a single event/error handler:
     handler.remove_all_global_events();
