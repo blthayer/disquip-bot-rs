@@ -261,7 +261,7 @@ async fn join(ctx: &Context<'_>) -> Result<(), Error> {
         loop {
             // Don't spam.
             tokio::time::sleep(tokio::time::Duration::from_mins(1)).await;
-            // If there are not members in the channel, leave the channel.
+            // Leave the channel if only bots remain.
             match guild.channels.get(&channel_id) {
                 Some(guild_channel) => {
                     let members = guild_channel
