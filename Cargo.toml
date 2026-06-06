@@ -1,6 +1,6 @@
 [package]
 name = "disquip-bot"
-version = "0.9.2"
+version = "0.9.3"
 edition = "2024"
 description = "A Discord bot to play audio files (quips) on command"
 documentation = "https://github.com/blthayer/disquip-bot-rs/blob/main/README.md"
@@ -8,7 +8,7 @@ readme = "README.md"
 repository = "https://github.com/blthayer/disquip-bot-rs"
 homepage = "https://github.com/blthayer/disquip-bot-rs"
 license = "MIT"
-keywords = ["discord", "audio", "bot", "soundboard", "civ", "civilization"]
+keywords = ["discord", "audio", "bot", "soundboard", "civilization"]
 categories = ["games", "multimedia::audio"]
 include = [
   "/src",

@@ -8,6 +8,10 @@ For now, this CHANGELOG is hand-curated, so only versions starting at `0.9.0`
 are documented here. Until a `1.0.0` release is published, minor patch bumps
 may include breaking or backwards-incompatible changes.
 
+## `0.9.3`
+
+Fix keywords for publishing to crates.io.
+
 ## `0.9.2`
 
 Update documentation, publish to crates.io.
