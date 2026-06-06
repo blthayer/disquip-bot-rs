@@ -1,6 +1,6 @@
 [package]
 name = "disquip-bot"
-version = "0.9.3"
+version = "0.9.4"
 edition = "2024"
 description = "A Discord bot to play audio files (quips) on command"
 documentation = "https://github.com/blthayer/disquip-bot-rs/blob/main/README.md"
@@ -61,3 +61,6 @@ codegen-units = 1
 # correctness, suspicious, style, complexity, perf
 all = { level = "deny", priority = -1 }
 pedantic = { level = "deny", priority = -1 }
+# prevent clippy from putting backticks in the
+# README...
+doc_markdown = { level = "allow" }

@@ -8,6 +8,12 @@ For now, this CHANGELOG is hand-curated, so only versions starting at `0.9.0`
 are documented here. Until a `1.0.0` release is published, minor patch bumps
 may include breaking or backwards-incompatible changes.
 
+## `0.9.4`
+
+Move documentation from `src/main.rs` to `src/lib.rs` so doc builds will work
+for docs.rs. `lib.rs` is used **only** for documentation, this remains a binary-only
+project.
+
 ## `0.9.3`
 
 Fix keywords for publishing to crates.io.
