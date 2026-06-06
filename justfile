@@ -2,8 +2,8 @@ lint:
     cargo clippy --all-features -- -D warnings
 
 test:
-    cargo test --all-features --no-fail-fast
-    cargo test --no-default-features
+    cargo test --bins --all-features --no-fail-fast
+    cargo test --bins --no-default-features
 
 fix:
     cargo fmt --all
