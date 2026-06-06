@@ -1,4 +1,4 @@
-# disquip-bot-rs
+# disquip-bot
 
 DisQuip Bot: Discord bot that plays audio clips from local files into voice channels
 on command.
@@ -6,12 +6,14 @@ on command.
 In essence, this is a customizable soundboard. Commands for randomizing aspects of
 Civilization VI game setup are optionally included (assumes you have all the DLC).
 
+Quick demo:
+
 <https://github.com/user-attachments/assets/316cd5e1-277f-41c8-894f-0e7120be4d61>
 
-This is a re-implementation of the now defunct
-[disquip-bot](https://github.com/blthayer/disquip-bot), originally written in
-Python. Unfortunately the original DisQuip bot died an early death due to Discord
-updating their API in a backwards-incompatible way.
+(recorded prior to implementation of search and play-by-search capabilities)
+
+The original, defunct Python implementation can be found
+[here](https://github.com/blthayer/disquip-bot).
 
 ## Table of Contents
 
@@ -38,11 +40,15 @@ own audio files, and run this program on your own PC, server, Raspberry Pi, etc.
 **This is (working) beta software** - It is not guaranteed to work everywhere or be
 100% secure, stable, or "productionized."
 
-While everything **does** seem to work just fine in my environment (no obvious memory
-leaks, no crashes after weeks of continuous runtime), testing is quite minimal, error
-handling is minimal/incomplete, logging is mostly missing, not all edge cases are
-covered, and security has not been assessed. Use at your own risk! No warranty is
-implied or provided for this freely available software.
+While everything **does** seem to work just fine in my environment (no obvious
+memory leaks, no crashes after weeks of continuous runtime), testing is quite
+minimal, error handling is minimal/incomplete, logging is mostly missing, not
+all edge cases are covered, and security has not been assessed. No load or
+stress testing has been performed, and the bot has not been tested against
+multiple Discord servers simultaneously.
+
+Use at your own risk! No warranty is implied or provided for this freely available
+software.
 
 If you encounter any issues, please do file an issue or submit a pull request.
 
@@ -58,7 +64,7 @@ more information on getting the bot running (launching the program).
 
 All commands for the bot are prefixed with `!` and are entered into a text channel
 that the bot is able to read and respond to messages in. In order to play audio
-files, you must be in a voice channel.
+files, you must be in a voice channel. The bot does not support slash commands.
 
 This guide will not cover all commands in detail, as the `!help` contents should
 stand on its own.
