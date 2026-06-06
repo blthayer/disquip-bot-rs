@@ -6,7 +6,7 @@ on command.
 In essence, this is a customizable soundboard. Commands for randomizing aspects of
 Civilization VI game setup are optionally included (assumes you have all the DLC).
 
-https://github.com/user-attachments/assets/316cd5e1-277f-41c8-894f-0e7120be4d61
+<https://github.com/user-attachments/assets/316cd5e1-277f-41c8-894f-0e7120be4d61>
 
 This is a re-implementation of the now defunct
 [disquip-bot](https://github.com/blthayer/disquip-bot), originally written in
@@ -15,10 +15,20 @@ updating their API in a backwards-incompatible way.
 
 ## Table of Contents
 
-1. [Disclaimers](#disclaimers)
 1. [Quick Start](#quick-start)
+1. [Disclaimers](#disclaimers)
 1. [Usage Within Discord](#usage-within-discord)
 1. [Setup, Install, and Run](#setup-install-and-run)
+
+## Quick Start
+
+1. Clone the repository and navigate to it:
+   `git clone https://github.com/blthayer/disquip-bot-rs.git; cd disquip-bot-rs`.
+1. Place the contents of your Discord bot's API token into a file called `token`
+   in this directory.
+1. Create subdirectories in the `audio` directory and populate them with `mp3`
+   and/or `wav` files.
+1. Compile and run locally: `./run.sh`
 
 ## Disclaimers
 
@@ -35,16 +45,6 @@ covered, and security has not been assessed. Use at your own risk! No warranty i
 implied or provided for this freely available software.
 
 If you encounter any issues, please do file an issue or submit a pull request.
-
-## Quick Start
-
-1. Clone the repository and navigate to it:
-   `git clone https://github.com/blthayer/disquip-bot-rs.git; cd disquip-bot-rs`.
-1. Place the contents of your Discord bot's API token into a file called `token`
-   in this directory.
-1. Create subdirectories in the `audio` directory and populate them with `mp3`
-   and/or `wav` files.
-1. Compile and run locally: `./run.sh`
 
 ## Usage Within Discord
 
