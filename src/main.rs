@@ -1,3 +1,22 @@
+//! TL;DR:
+//!
+//! ```
+//! cargo install --locked disquip-bot
+//! disquip-bot /path/to/audio/dir /path/to/token/file
+//! ```
+//!
+//! Alternatively, a limited set pre-built binaries (including `.deb` packages)
+//! are available [on GitHub](https://github.com/blthayer/disquip-bot-rs/releases).
+//!
+#![doc = include_str!("../README.md")]
+#![doc = include_str!("../CHANGELOG.md")]
+//!
+//! # Feature flags
+//! ## civ
+//! Enables game setup and randomization commands for Civilization VI. Installed
+//! by default in pre-built binaries (see GitHub releases) excluded by default when built from source via
+//! `cargo`.
+
 #[cfg(feature = "civ")]
 mod civ;
 #[cfg(feature = "civ")]
@@ -807,9 +826,9 @@ fn tickify(text: &str) -> String {
 // Exits the process.
 fn usage() -> ! {
     println!(
-"Usage: disquip-bot-rs [-h | --help] /path/to/audio/files /path/to/token
+"Usage: disquip-bot [-h | --help] /path/to/audio/dir /path/to/token/file
 
-E.g.: \"disquip-bot-rs audio token\" for an \"audio\" directory and \"token\" file in the current directory.
+E.g.: \"disquip-bot audio token\" for an \"audio\" directory and \"token\" file in the current directory.
 
 It is recommended that the token file use 600 permissions for security. Avoid leaking credentials to shell history when creating the file.
 
