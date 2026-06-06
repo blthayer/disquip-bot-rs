@@ -8,7 +8,7 @@ readme = "README.md"
 repository = "https://github.com/blthayer/disquip-bot-rs"
 homepage = "https://github.com/blthayer/disquip-bot-rs"
 license = "MIT"
-keywords = ["discord", "audio", "bot", "soundboard", "civ"]
+keywords = ["discord", "audio", "bot", "soundboard", "civ", "civilization"]
 categories = ["games", "multimedia::audio"]
 
 [package.metadata.deb]
