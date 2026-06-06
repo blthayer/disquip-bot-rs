@@ -826,9 +826,9 @@ fn tickify(text: &str) -> String {
 // Exits the process.
 fn usage() -> ! {
     println!(
-"Usage: disquip-bot-rs [-h | --help] /path/to/audio/dir /path/to/token/file
+"Usage: disquip-bot [-h | --help] /path/to/audio/dir /path/to/token/file
 
-E.g.: \"disquip-bot-rs audio token\" for an \"audio\" directory and \"token\" file in the current directory.
+E.g.: \"disquip-bot audio token\" for an \"audio\" directory and \"token\" file in the current directory.
 
 It is recommended that the token file use 600 permissions for security. Avoid leaking credentials to shell history when creating the file.
 
