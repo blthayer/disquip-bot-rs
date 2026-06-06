@@ -303,7 +303,10 @@ Example:
 
 ### crates.io
 
-TODO
+```bash
+cargo install --locked disquip-bot
+disquip-bot audio token
+```
 
 ### `apt` / `systemd` (`.deb` files)
 
