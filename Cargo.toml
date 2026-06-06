@@ -10,6 +10,12 @@ homepage = "https://github.com/blthayer/disquip-bot-rs"
 license = "MIT"
 keywords = ["discord", "audio", "bot", "soundboard", "civ", "civilization"]
 categories = ["games", "multimedia::audio"]
+include = [
+  "/src",
+  "README.md",
+  "CHANGELOG.md",
+  "LICENSE",
+]
 
 [package.metadata.deb]
 maintainer = "Brandon Thayer <bthayer@tuta.com>"
